@@ -1,16 +1,31 @@
+# dependencies
 node_modules
+.pnp
+.pnp.*
+
+# next / nest build
+.next
+out
+dist
+build
+coverage
+
+# env / secrets
 .env
 .env.local
 .env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# misc
 .DS_Store
-dist
-build
-.next
-out
+*.log
+*.pem
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+.turbo
 .wwebjs_auth
 .wwebjs_cache
 session
-*.log
-.vercel
-*.tsbuildinfo
-next-env.d.ts

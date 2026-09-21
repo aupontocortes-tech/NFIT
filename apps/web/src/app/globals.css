@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0b1511;
+  --foreground: #edf4ee;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: #d6ff4b;
+  color: #10210f;
+}
