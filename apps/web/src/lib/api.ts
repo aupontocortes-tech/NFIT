@@ -1,96 +1,866 @@
-import { API_BASE, USE_MOCK } from "./env";
+/**
+ * Cliente API nfit — base NEXT_PUBLIC_API_BASE.
+ * USE_MOCK=false: fetch real + Bearer JWT (localStorage).
+ * Domínios secundários: tenta real e cai no mock em 404/falha de rede.
+ */
 import {
-  mockDashboard,
-  mockLogin,
-  mockMe,
-  mockPayments,
-  mockSessions,
-  mockStudent,
-  mockStudents,
-  mockWorkouts,
-} from "./mock";
-import { getStoredUser, getToken } from "./storage";
-import type {
-  AuthResponse,
-  DashboardData,
-  Payment,
-  Student,
-  TrainingSession,
-  User,
-  Workout,
-} from "./types";
+  assessmentsByStudent,
+  aiDraftFixture,
+  assignments,
+  conversations,
+  currentAluno,
+  currentPersonal,
+  dashboardData,
+  events,
+  invoices,
+  messagesByConversation,
+  students,
+  workouts,
+  type Assignment,
+  type Invoice,
+  type Student,
+  type User,
+  type Workout,
+} from "./mocks";
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = getToken();
-  const headers = new Headers(init.headers);
-  headers.set("Accept", "application/json");
-  if (init.body && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:3001/api/v1";
+export const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
+
+const TOKEN_KEY = "nfit_token";
+
+export class ApiError extends Error {
+  status: number;
+  code?: string;
+  fields?: Record<string, string>;
+
+  constructor(
+    message: string,
+    status: number,
+    code?: string,
+    fields?: Record<string, string>,
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+    this.fields = fields;
   }
-  if (token) headers.set("Authorization", `Bearer ${token}`);
+}
 
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
-  if (!res.ok) {
-    let message = `Erro ${res.status}`;
-    try {
-      const body = (await res.json()) as { message?: string; error?: string };
-      message = body.message || body.error || message;
-    } catch {
-      /* ignore */
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setToken(token: string | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+async function delay(ms = 280) {
+  await new Promise((r) => setTimeout(r, ms));
+}
+
+type FetchOpts = {
+  method?: string;
+  body?: unknown;
+  auth?: boolean;
+  query?: Record<string, string | number | boolean | undefined | null>;
+};
+
+function buildUrl(path: string, query?: FetchOpts["query"]) {
+  const url = new URL(
+    path.startsWith("http") ? path : `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`,
+  );
+  if (query) {
+    for (const [k, v] of Object.entries(query)) {
+      if (v === undefined || v === null || v === "") continue;
+      url.searchParams.set(k, String(v));
     }
-    throw new Error(message);
   }
-  if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+  return url.toString();
 }
 
-function currentUser() {
-  const user = getStoredUser();
-  if (!user) throw new Error("Sessão expirada. Entre novamente.");
-  return user;
-}
+async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+  if (opts.body !== undefined) headers["Content-Type"] = "application/json";
+  if (opts.auth !== false) {
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
 
-export async function login(email: string, password: string): Promise<AuthResponse> {
-  if (USE_MOCK) return mockLogin(email, password);
-  return request<AuthResponse>("/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
+  const res = await fetch(buildUrl(path, opts.query), {
+    method: opts.method ?? (opts.body !== undefined ? "POST" : "GET"),
+    headers,
+    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
   });
+
+  if (res.status === 204) return undefined as T;
+
+  const text = await res.text();
+  let data: unknown = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text };
+    }
+  }
+
+  if (!res.ok) {
+    const err = data as {
+      error?: { code?: string; message?: string; fields?: Record<string, string> };
+    } | null;
+    throw new ApiError(
+      err?.error?.message ?? `HTTP ${res.status}`,
+      res.status,
+      err?.error?.code,
+      err?.error?.fields,
+    );
+  }
+
+  return data as T;
 }
 
-export async function me(): Promise<User> {
-  const token = getToken();
-  if (!token) throw new Error("Sessão expirada. Entre novamente.");
-  if (USE_MOCK) return mockMe(token);
-  return request<User>("/auth/me");
+/** Soft domains: real first; on 404 (or network) fall back to mock. */
+async function realOrMock<T>(
+  real: () => Promise<T>,
+  mock: () => Promise<T>,
+): Promise<T> {
+  if (USE_MOCK) return mock();
+  try {
+    return await real();
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 404 || e.status === 501)) {
+      return mock();
+    }
+    // Network / CORS — still fall back so UI keeps working in partial setups
+    if (!(e instanceof ApiError)) return mock();
+    throw e;
+  }
 }
 
-export async function getDashboard(): Promise<DashboardData> {
-  if (USE_MOCK) return mockDashboard(currentUser());
-  return request<DashboardData>("/dashboard");
+function storeAuth(res: { user: User; token: string }) {
+  setToken(res.token);
+  return res;
 }
 
-export async function getStudents(): Promise<Student[]> {
-  if (USE_MOCK) return mockStudents(currentUser());
-  return request<Student[]>("/students");
-}
+export const api = {
+  // ── Auth (live when !USE_MOCK) ──────────────────────────────────────────
+  async login(email: string, password: string) {
+    if (USE_MOCK) {
+      await delay();
+      const isAluno =
+        email.toLowerCase().includes("aluno") || email.includes("carlos");
+      const user = isAluno ? currentAluno : currentPersonal;
+      return storeAuth({ user, token: "mock-jwt-token" });
+    }
+    const res = await request<{ user: User; token: string }>("/auth/login", {
+      method: "POST",
+      body: { email, password },
+      auth: false,
+    });
+    return storeAuth(res);
+  },
 
-export async function getStudent(id: string): Promise<Student> {
-  if (USE_MOCK) return mockStudent(id, currentUser());
-  return request<Student>(`/students/${id}`);
-}
+  async register(data: { name: string; email: string; password: string }) {
+    if (USE_MOCK) {
+      await delay();
+      return storeAuth({
+        user: { ...currentPersonal, name: data.name, email: data.email },
+        token: "mock-jwt-token",
+      });
+    }
+    const res = await request<{ user: User; token: string }>("/auth/register", {
+      method: "POST",
+      body: { ...data, role: "personal" },
+      auth: false,
+    });
+    return storeAuth(res);
+  },
 
-export async function getSessions(): Promise<TrainingSession[]> {
-  if (USE_MOCK) return mockSessions(currentUser());
-  return request<TrainingSession[]>("/sessions");
-}
+  async me() {
+    if (USE_MOCK) {
+      await delay(100);
+      return currentPersonal;
+    }
+    return request<User>("/auth/me");
+  },
 
-export async function getWorkouts(): Promise<Workout[]> {
-  if (USE_MOCK) return mockWorkouts(currentUser());
-  return request<Workout[]>("/workouts");
-}
+  async forgotPassword(email: string) {
+    if (USE_MOCK) {
+      await delay();
+      return { ok: true as const };
+    }
+    return request<{ ok: true }>("/auth/forgot-password", {
+      method: "POST",
+      body: { email },
+      auth: false,
+    });
+  },
 
-export async function getPayments(): Promise<Payment[]> {
-  if (USE_MOCK) return mockPayments(currentUser());
-  return request<Payment[]>("/payments");
-}
+  async resetPassword(token: string, password: string) {
+    if (USE_MOCK) {
+      await delay();
+      return { ok: true as const };
+    }
+    return request<{ ok: true }>("/auth/reset-password", {
+      method: "POST",
+      body: { token, password },
+      auth: false,
+    });
+  },
+
+  async acceptInvite(token: string, password: string, name?: string) {
+    if (USE_MOCK) {
+      await delay();
+      return storeAuth({
+        user: { ...currentAluno, name: name ?? currentAluno.name },
+        token: "mock-jwt-token",
+      });
+    }
+    const res = await request<{ user: User; token: string }>(
+      "/auth/accept-invite",
+      {
+        method: "POST",
+        body: { token, password, ...(name ? { name } : {}) },
+        auth: false,
+      },
+    );
+    return storeAuth(res);
+  },
+
+  async logout() {
+    if (USE_MOCK) {
+      await delay(100);
+      setToken(null);
+      return;
+    }
+    try {
+      await request<void>("/auth/logout", { method: "POST" });
+    } finally {
+      setToken(null);
+    }
+  },
+
+  // ── Personal / dashboard (soft) ─────────────────────────────────────────
+  async getDashboard() {
+    return realOrMock(
+      () => request<typeof dashboardData>("/personal/dashboard"),
+      async () => {
+        await delay();
+        return dashboardData;
+      },
+    );
+  },
+
+  async getPersonalProfile() {
+    return realOrMock(
+      () =>
+        request<{
+          id: string;
+          name: string;
+          email: string;
+          avatarUrl?: string | null;
+          bio?: string;
+          studioName?: string;
+          timezone?: string;
+          notificationPrefs?: { email: boolean; push: boolean };
+        }>("/personal/profile"),
+      async () => {
+        await delay();
+        return {
+          id: currentPersonal.id,
+          name: currentPersonal.name,
+          email: currentPersonal.email,
+          avatarUrl: currentPersonal.avatarUrl,
+          bio: "Personal trainer CREF ativo",
+          studioName: currentPersonal.studioName,
+          timezone: "America/Sao_Paulo",
+          notificationPrefs: { email: true, push: true },
+        };
+      },
+    );
+  },
+
+  // ── Students (live) ─────────────────────────────────────────────────────
+  async listStudents(params?: { q?: string; status?: string }) {
+    if (USE_MOCK) {
+      await delay();
+      let items = [...students];
+      if (params?.status) items = items.filter((s) => s.status === params.status);
+      if (params?.q) {
+        const q = params.q.toLowerCase();
+        items = items.filter(
+          (s) =>
+            s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q),
+        );
+      }
+      return { items, page: 1, pageSize: 20, total: items.length };
+    }
+    return request<{
+      items: Student[];
+      page: number;
+      pageSize: number;
+      total: number;
+    }>("/students", { query: { q: params?.q, status: params?.status } });
+  },
+
+  async getStudent(id: string) {
+    if (USE_MOCK) {
+      await delay();
+      const s = students.find((x) => x.id === id);
+      if (!s) throw new Error("Aluno não encontrado");
+      return s;
+    }
+    return request<Student>(`/students/${id}`);
+  },
+
+  async createStudent(data: Partial<Student>) {
+    if (USE_MOCK) {
+      await delay();
+      return {
+        id: `s-${Date.now()}`,
+        name: data.name ?? "",
+        email: data.email ?? "",
+        phone: data.phone,
+        notes: data.notes,
+        status: "invite_pending" as const,
+        createdAt: new Date().toISOString(),
+      };
+    }
+    return request<Student>("/students", {
+      method: "POST",
+      body: {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        notes: data.notes,
+      },
+    });
+  },
+
+  async patchStudent(id: string, data: Partial<Student>) {
+    if (USE_MOCK) {
+      await delay();
+      const existing = await this.getStudent(id);
+      return { ...existing, ...data };
+    }
+    return request<Student>(`/students/${id}`, {
+      method: "PATCH",
+      body: {
+        name: data.name,
+        phone: data.phone,
+        notes: data.notes,
+        status: data.status,
+      },
+    });
+  },
+
+  // ── Workouts (live) ─────────────────────────────────────────────────────
+  async listWorkouts(params?: { status?: string; generatedByAi?: boolean }) {
+    if (USE_MOCK) {
+      await delay();
+      let items = [...workouts];
+      if (params?.status) items = items.filter((w) => w.status === params.status);
+      if (params?.generatedByAi != null)
+        items = items.filter((w) => w.generatedByAi === params.generatedByAi);
+      return { items, page: 1, pageSize: 20, total: items.length };
+    }
+    return request<{
+      items: Workout[];
+      page: number;
+      pageSize: number;
+      total: number;
+    }>("/workouts", {
+      query: {
+        status: params?.status,
+        generatedByAi:
+          params?.generatedByAi == null ? undefined : params.generatedByAi,
+      },
+    });
+  },
+
+  async getWorkout(id: string) {
+    if (USE_MOCK) {
+      await delay();
+      const w =
+        workouts.find((x) => x.id === id) ??
+        (id === aiDraftFixture.id ? aiDraftFixture : null);
+      if (!w) throw new Error("Treino não encontrado");
+      return w;
+    }
+    return request<Workout>(`/workouts/${id}`);
+  },
+
+  async createWorkout(data: Partial<Workout>) {
+    if (USE_MOCK) {
+      await delay();
+      return {
+        id: `w-${Date.now()}`,
+        title: data.title ?? "Novo treino",
+        goal: data.goal,
+        status: (data.status as Workout["status"]) ?? "draft",
+        generatedByAi: false,
+        notes: data.notes,
+        blocks: data.blocks ?? [],
+        updatedAt: new Date().toISOString(),
+        exerciseCount:
+          data.blocks?.reduce((n, b) => n + b.exercises.length, 0) ?? 0,
+      } satisfies Workout;
+    }
+    return request<Workout>("/workouts", {
+      method: "POST",
+      body: {
+        title: data.title,
+        goal: data.goal,
+        status: data.status ?? "draft",
+        notes: data.notes,
+        blocks: data.blocks ?? [],
+        generatedByAi: data.generatedByAi ?? false,
+      },
+    });
+  },
+
+  async updateWorkout(id: string, data: Partial<Workout>) {
+    if (USE_MOCK) {
+      await delay();
+      const existing = await this.getWorkout(id);
+      return { ...existing, ...data, updatedAt: new Date().toISOString() };
+    }
+    return request<Workout>(`/workouts/${id}`, {
+      method: "PATCH",
+      body: {
+        title: data.title,
+        goal: data.goal,
+        status: data.status,
+        notes: data.notes,
+        blocks: data.blocks,
+      },
+    });
+  },
+
+  // ── AI (live sync generate; never auto-publish) ─────────────────────────
+  async generateWorkoutAi(input: {
+    studentId?: string;
+    goal: string;
+    daysPerWeek: number;
+    sessionMinutes: number;
+    level: string;
+    constraints?: string;
+    equipment?: string;
+    prompt?: string;
+  }) {
+    if (USE_MOCK) {
+      await delay(1200);
+      return {
+        draftId: "draft-mock-001",
+        generatedByAi: true as const,
+        status: "draft" as const,
+        workout: { ...aiDraftFixture, id: "w-ai-draft" },
+        modelMeta: { requestId: "mock-req-001" },
+      };
+    }
+    // Backend MVP is synchronous: POST returns draft (no job poll).
+    return request<{
+      draftId: string;
+      generatedByAi: true;
+      status: "draft";
+      workout: Workout;
+      modelMeta: { requestId: string };
+    }>("/ai/workouts/generate", { method: "POST", body: input });
+  },
+
+  async regenerateWorkoutAi(draftId: string) {
+    if (USE_MOCK) {
+      await delay(1000);
+      return {
+        draftId: "draft-mock-001",
+        generatedByAi: true as const,
+        status: "draft" as const,
+        workout: {
+          ...aiDraftFixture,
+          title: "Plano regenerado — rascunho IA",
+          updatedAt: new Date().toISOString(),
+        },
+        modelMeta: { requestId: "mock-req-002" },
+      };
+    }
+    return request<{
+      draftId: string;
+      generatedByAi: true;
+      status: "draft";
+      workout: Workout;
+      modelMeta: { requestId: string };
+    }>("/ai/workouts/regenerate", {
+      method: "POST",
+      body: { draftId },
+    });
+  },
+
+  /** Optional: fetch draft workout by id after generate (materialized). */
+  async getAiDraft(draftOrWorkoutId: string) {
+    if (USE_MOCK) {
+      await delay();
+      return { ...aiDraftFixture, id: draftOrWorkoutId };
+    }
+    return this.getWorkout(draftOrWorkoutId);
+  },
+
+  // ── Assignments (live) ──────────────────────────────────────────────────
+  async createAssignments(data: {
+    workoutId: string;
+    studentIds: string[];
+    startDate: string;
+    notes?: string;
+    ackPainRisk?: boolean;
+  }) {
+    if (USE_MOCK) {
+      await delay();
+      return {
+        assignments: data.studentIds.map((studentId, i) => ({
+          id: `a-new-${i}`,
+          workoutId: data.workoutId,
+          studentId,
+          status: "active" as const,
+          startDate: data.startDate,
+        })),
+      };
+    }
+    return request<{ assignments: Assignment[] }>("/workout-assignments", {
+      method: "POST",
+      body: data,
+    });
+  },
+
+  async listAssignments(params?: { studentId?: string }) {
+    if (USE_MOCK) {
+      await delay();
+      let items = [...assignments];
+      if (params?.studentId)
+        items = items.filter((a) => a.studentId === params.studentId);
+      return items;
+    }
+    const res = await request<{ items: Assignment[] } | Assignment[]>(
+      "/workout-assignments",
+      { query: { studentId: params?.studentId } },
+    );
+    return Array.isArray(res) ? res : (res.items ?? []);
+  },
+
+  async getAssignment(id: string) {
+    if (USE_MOCK) {
+      await delay();
+      const a = assignments.find((x) => x.id === id);
+      if (!a) throw new Error("Atribuição não encontrada");
+      return a;
+    }
+    return request<Assignment>(`/workout-assignments/${id}`);
+  },
+
+  // ── Student app (soft where needed) ─────────────────────────────────────
+  async getStudentHome() {
+    return realOrMock(
+      () =>
+        request<{
+          todayAssignment: {
+            id: string;
+            workoutTitle: string;
+            startDate: string;
+            status: string;
+          } | null;
+          nextEvents: typeof events;
+          unreadMessages: number;
+        }>("/student/home"),
+      async () => {
+        await delay();
+        const today =
+          assignments.find(
+            (a) => a.studentId === "s-001" && a.status === "active",
+          ) ?? null;
+        return {
+          todayAssignment: today
+            ? {
+                id: today.id,
+                workoutTitle: today.workoutTitle ?? "",
+                startDate: today.startDate,
+                status: today.status,
+              }
+            : null,
+          nextEvents: events.filter((e) => e.studentId === "s-001"),
+          unreadMessages: 2,
+        };
+      },
+    );
+  },
+
+  async getStudentAssignment(id: string): Promise<Assignment> {
+    if (USE_MOCK) return this.getAssignment(id);
+    return request<Assignment>(`/student/assignments/${id}`);
+  },
+
+  async completeSession(assignmentId: string, payload: unknown) {
+    if (USE_MOCK) {
+      await delay();
+      return { sessionId: `sess-${Date.now()}`, status: "completed" as const };
+    }
+    return request<{ sessionId: string; status: "completed" }>(
+      `/student/assignments/${assignmentId}/sessions`,
+      { method: "POST", body: payload },
+    );
+  },
+
+  async getStudentInvoices() {
+    return realOrMock(
+      async () => {
+        const res = await request<{ items: Invoice[] } | Invoice[]>(
+          "/student/invoices",
+        );
+        return Array.isArray(res) ? res : (res.items ?? []);
+      },
+      async () => {
+        await delay();
+        return invoices.filter((i) => i.studentId === "s-001");
+      },
+    );
+  },
+
+  async getStudentEvolution() {
+    return realOrMock(
+      () =>
+        request<{
+          weights: { date: string; weightKg: number }[];
+          measurements: Record<string, unknown>[];
+          photos: string[];
+        }>("/student/evolution"),
+      async () => {
+        await delay();
+        const list = assessmentsByStudent["s-001"] ?? [];
+        return {
+          weights: list.map((a) => ({ date: a.date, weightKg: a.weightKg ?? 0 })),
+          measurements: list.map((a) => ({ date: a.date, ...a.measurements })),
+          photos: [] as string[],
+        };
+      },
+    );
+  },
+
+  async getStudentAssessments() {
+    return realOrMock(
+      async () => {
+        const res = await request<{ items: unknown[] } | unknown[]>(
+          "/student/assessments",
+        );
+        return Array.isArray(res) ? res : (res.items ?? []);
+      },
+      async () => {
+        await delay();
+        return assessmentsByStudent["s-001"] ?? [];
+      },
+    );
+  },
+
+  // ── Events (soft) ───────────────────────────────────────────────────────
+  async listEvents() {
+    return realOrMock(
+      () => request<{ items: typeof events }>("/events"),
+      async () => {
+        await delay();
+        return { items: events };
+      },
+    );
+  },
+
+  async createEvent(data: Partial<(typeof events)[0]>) {
+    return realOrMock(
+      () =>
+        request<(typeof events)[0]>("/events", {
+          method: "POST",
+          body: data,
+        }),
+      async () => {
+        await delay();
+        return { ...events[0], ...data, id: `e-${Date.now()}` };
+      },
+    );
+  },
+
+  // ── Chat (soft) ─────────────────────────────────────────────────────────
+  async listConversations() {
+    return realOrMock(
+      () => request<{ items: typeof conversations }>("/conversations"),
+      async () => {
+        await delay();
+        return { items: conversations };
+      },
+    );
+  },
+
+  async getMessages(conversationId: string) {
+    return realOrMock(
+      () =>
+        request<{ items: (typeof messagesByConversation)[string] }>(
+          `/conversations/${conversationId}/messages`,
+        ),
+      async () => {
+        await delay();
+        return { items: messagesByConversation[conversationId] ?? [] };
+      },
+    );
+  },
+
+  async sendMessage(conversationId: string, body: string) {
+    return realOrMock(
+      () =>
+        request<{
+          id: string;
+          senderId: string;
+          body: string;
+          createdAt: string;
+        }>(`/conversations/${conversationId}/messages`, {
+          method: "POST",
+          body: { body },
+        }),
+      async () => {
+        await delay();
+        return {
+          id: `m-${Date.now()}`,
+          senderId: currentPersonal.id,
+          body,
+          createdAt: new Date().toISOString(),
+        };
+      },
+    );
+  },
+
+  // ── Invoices (soft) ─────────────────────────────────────────────────────
+  async listInvoices(params?: { status?: string }) {
+    return realOrMock(
+      () =>
+        request<{
+          items: Invoice[];
+          page: number;
+          pageSize: number;
+          total: number;
+        }>("/invoices", { query: { status: params?.status } }),
+      async () => {
+        await delay();
+        let items = [...invoices];
+        if (params?.status)
+          items = items.filter((i) => i.status === params.status);
+        return { items, page: 1, pageSize: 20, total: items.length };
+      },
+    );
+  },
+
+  async getInvoice(id: string): Promise<Invoice> {
+    return realOrMock(
+      () => request<Invoice>(`/invoices/${id}`),
+      async () => {
+        await delay();
+        const inv = invoices.find((i) => i.id === id);
+        if (!inv) throw new Error("Cobrança não encontrada");
+        return inv;
+      },
+    );
+  },
+
+  async createInvoice(data: {
+    studentId: string;
+    description: string;
+    amount: number;
+    dueDate: string;
+  }) {
+    return realOrMock(
+      () =>
+        request<Invoice>("/invoices", {
+          method: "POST",
+          body: {
+            studentId: data.studentId,
+            description: data.description,
+            amount: data.amount,
+            currency: "BRL",
+            dueDate: data.dueDate,
+          },
+        }),
+      async () => {
+        await delay();
+        const st = students.find((s) => s.id === data.studentId);
+        return {
+          id: `i-${Date.now()}`,
+          studentId: data.studentId,
+          studentName: st?.name ?? "",
+          description: data.description,
+          amount: { amount: data.amount, currency: "BRL" as const },
+          dueDate: data.dueDate,
+          status: "pending" as const,
+        };
+      },
+    );
+  },
+
+  async markInvoicePaid(id: string) {
+    return realOrMock(
+      () => request<Invoice>(`/invoices/${id}/mark-paid`, { method: "POST" }),
+      async () => {
+        await delay();
+        const inv = await this.getInvoice(id);
+        return {
+          ...inv,
+          status: "paid" as const,
+          paidAt: new Date().toISOString(),
+        };
+      },
+    );
+  },
+
+  // ── Assessments (soft) ──────────────────────────────────────────────────
+  async listAssessments(studentId: string) {
+    return realOrMock(
+      () =>
+        request<{ items: (typeof assessmentsByStudent)[string] }>(
+          `/students/${studentId}/assessments`,
+        ),
+      async () => {
+        await delay();
+        return { items: assessmentsByStudent[studentId] ?? [] };
+      },
+    );
+  },
+
+  async createAssessment(studentId: string, data: Record<string, unknown>) {
+    return realOrMock(
+      () =>
+        request<Record<string, unknown>>(
+          `/students/${studentId}/assessments`,
+          { method: "POST", body: data },
+        ),
+      async () => {
+        await delay();
+        return {
+          id: `as-${Date.now()}`,
+          date:
+            (data.date as string) ?? new Date().toISOString().slice(0, 10),
+          weightKg: data.weightKg as number | undefined,
+          bodyFatPercent: data.bodyFatPercent as number | undefined,
+          measurements: (data.measurements as object) ?? {},
+          notes: data.notes as string | undefined,
+          photoUrls: [],
+          createdAt: new Date().toISOString(),
+        };
+      },
+    );
+  },
+};

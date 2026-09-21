@@ -3,14 +3,12 @@
 Monorepo do **nfit** — produto para personal trainer e educação física.
 
 ```
-apps/web   Frontend Next.js (Fase 1) — este pacote
+apps/web   Frontend Next.js (Fase 1, cliente API ao vivo)
 apps/api   Backend NestJS + Prisma + PostgreSQL (o time de API cuida)
 docs/api   Specs OpenAPI do backend (o time de API cuida)
 ```
 
-Não há API neste commit de front. `apps/api` e `docs/api` ficam reservados para o backend.
-
-## Frontend (Fase 1)
+## Frontend (`apps/web`)
 
 ```bash
 cd apps/web
@@ -19,27 +17,31 @@ npm install
 npm run dev
 ```
 
+O `.env.local` precisa de:
+
+```
+NEXT_PUBLIC_API_BASE=http://localhost:3001/api/v1
+NEXT_PUBLIC_USE_MOCK=false
+```
+
 - App: [http://localhost:3000](http://localhost:3000)
-- API base: `NEXT_PUBLIC_API_BASE=http://localhost:3001/api/v1`
-- Mock: `NEXT_PUBLIC_USE_MOCK=true` (padrão) — não precisa do backend para abrir a UI
+- JWT: o client grava o token e manda `Authorization: Bearer …`
+- Com `USE_MOCK=false` a API em `apps/api` precisa estar rodando
+- Swagger: [http://localhost:3001/api/docs](http://localhost:3001/api/docs)
 
 ### Escopo da Fase 1
 
-Login (personal / aluno), dashboard, alunos, agenda, treinos e pagamentos.
+Auth (login / cadastro / convite), dashboard, alunos, treinos (manual + rascunho IA), agenda, chat, cobranças, avaliações, área do aluno.
 
-### Contas seed (quando o back popular o banco)
+### Seed (quando o back popular o banco)
 
 - `personal@nfit.local` / `senha12345`
 - `aluno@nfit.local` / `senha12345`
 
-As mesmas contas funcionam no mock local.
-
-Swagger da API (quando `apps/api` estiver no ar): [http://localhost:3001/api/docs](http://localhost:3001/api/docs)
-
 ## Backend
 
-O Desenvolvedor Código instala o Nest em `apps/api`. Não crie nem altere a API a partir do front.
+O Desenvolvedor Código instala o Nest em `apps/api`. Este commit de front não cria nem altera a API.
 
 ## Sem deploy
 
-Este repositório não inclui pipeline de deploy nem chaves de APIs pagas.
+Sem pipeline de deploy e sem chaves de APIs pagas no repositório. Não commite `.env.local`.

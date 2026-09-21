@@ -1,28 +1,32 @@
+import { ToastProvider } from "@/components/ui/Toast";
 import type { Metadata } from "next";
-import { Space_Grotesk, Manrope } from "next/font/google";
-import { AuthProvider } from "@/components/auth-provider";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const display = Space_Grotesk({
-  variable: "--font-display",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-const body = Manrope({
-  variable: "--font-body",
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "nfit — Fase 1",
-  description: "Gestão de personal trainer e alunos. Fase 1: login, alunos, agenda, treinos e pagamentos.",
+  title: "nfit",
+  description: "App de gestão para personal trainers e alunos",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="pt-BR" className={`${display.variable} ${body.variable} h-full antialiased`}>
-      <body className="min-h-full bg-background text-foreground">
-        <AuthProvider>{children}</AuthProvider>
+    <html lang="pt-BR">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );
