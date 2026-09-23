@@ -15,15 +15,21 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function CobrancasPage() {
-  const [items, setItems] = useState<Invoice[] | null>(null);
+  const [result, setResult] = useState<{ key: string; items: Invoice[] } | null>(null);
   const [status, setStatus] = useState("");
 
+  // Busca de novo quando o filtro muda; ignora respostas antigas
+  const key = status;
   useEffect(() => {
-    setItems(null);
+    let alive = true;
     api
       .listInvoices({ status: status || undefined })
-      .then((r) => setItems(r.items));
-  }, [status]);
+      .then((r) => alive && setResult({ key, items: r.items }));
+    return () => {
+      alive = false;
+    };
+  }, [key, status]);
+  const items = result?.key === key ? result.items : null;
 
   return (
     <div>

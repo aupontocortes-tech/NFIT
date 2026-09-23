@@ -2,7 +2,8 @@
 
 import { Button, Card, Input, PageHeader, Textarea } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+import { hasErrors, validateStudent } from "@/lib/validators";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -17,14 +18,24 @@ export default function NovoAlunoPage() {
     phone: "",
     notes: "",
   });
+  const [submitted, setSubmitted] = useState(false);
+  const errors = submitted ? validateStudent(form) : {};
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSubmitted(true);
+    if (hasErrors(validateStudent(form))) return;
     setLoading(true);
     try {
-      const s = await api.createStudent(form);
+      const s = await api.createStudent({
+        ...form,
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+      });
       toast("Aluno criado — convite enviado");
       router.push(`/alunos/${s.id}`);
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : "Não foi possível salvar o aluno", "error");
     } finally {
       setLoading(false);
     }
@@ -34,12 +45,12 @@ export default function NovoAlunoPage() {
     <div>
       <PageHeader title="Novo aluno" />
       <Card className="max-w-2xl">
-        <form onSubmit={onSubmit} className="grid gap-4 md:grid-cols-2">
+        <form onSubmit={onSubmit} noValidate className="grid gap-4 md:grid-cols-2">
           <Input
             label="Nome"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            required
+            error={errors.name}
             className="md:col-span-2"
           />
           <Input
@@ -47,7 +58,7 @@ export default function NovoAlunoPage() {
             type="email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            required
+            error={errors.email}
             helper="Será enviado um convite"
           />
           <Input
@@ -55,6 +66,8 @@ export default function NovoAlunoPage() {
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
             placeholder="(11) 99999-9999"
+            inputMode="tel"
+            error={errors.phone}
           />
           <Textarea
             label="Notas"

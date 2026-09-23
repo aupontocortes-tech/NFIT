@@ -15,15 +15,21 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function TreinosPage() {
-  const [items, setItems] = useState<Workout[] | null>(null);
+  const [result, setResult] = useState<{ key: string; items: Workout[] } | null>(null);
   const [status, setStatus] = useState("");
 
+  // Busca de novo quando o filtro muda; ignora respostas antigas
+  const key = status;
   useEffect(() => {
-    setItems(null);
+    let alive = true;
     api
       .listWorkouts({ status: status || undefined })
-      .then((r) => setItems(r.items));
-  }, [status]);
+      .then((r) => alive && setResult({ key, items: r.items }));
+    return () => {
+      alive = false;
+    };
+  }, [key, status]);
+  const items = result?.key === key ? result.items : null;
 
   return (
     <div>

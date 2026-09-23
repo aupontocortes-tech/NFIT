@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar } from "@/components/ui";
+import { useProfile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 import {
   Calendar,
@@ -43,6 +44,9 @@ function isActive(pathname: string, href: string) {
 
 export function PersonalShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const profile = useProfile();
+  const name = profile?.name ?? "";
+  const studio = profile?.studioName || "Meu studio";
 
   return (
     <div className="min-h-dvh bg-bg md:flex">
@@ -51,9 +55,9 @@ export function PersonalShell({ children }: { children: ReactNode }) {
           <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] bg-brand text-text-inverse font-bold">
             P
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold">nfit</p>
-            <p className="text-caption">Studio nfit</p>
+            <p className="truncate text-caption">{studio}</p>
           </div>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 p-2">
@@ -79,9 +83,9 @@ export function PersonalShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="border-t border-border p-4">
           <div className="flex items-center gap-3">
-            <Avatar name="Ana Souza" size="md" />
+            <Avatar name={name || "?"} size="md" />
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium">Ana Souza</p>
+              <p className="truncate text-sm font-medium">{name || "…"}</p>
               <p className="truncate text-caption">Personal</p>
             </div>
           </div>
@@ -92,7 +96,7 @@ export function PersonalShell({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-surface/95 px-4 py-3 backdrop-blur md:px-6">
           <p className="text-sm font-semibold md:hidden">nfit</p>
           <p className="hidden text-sm text-text-muted md:block">Área do Personal</p>
-          <Avatar name="Ana Souza" size="sm" className="md:hidden" />
+          <Avatar name={name || "?"} size="sm" className="md:hidden" />
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-24 md:px-6 md:pb-8">
           {children}

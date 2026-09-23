@@ -18,16 +18,29 @@ import {
   workouts,
   type Assignment,
   type Invoice,
+  type Message,
   type Student,
   type User,
   type Workout,
 } from "./mocks";
+import { blobToDataUrl, compressImage } from "./images";
+import type { PixConfig } from "./pix";
 
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:3001/api/v1";
 export const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
 
 const TOKEN_KEY = "nfit_token";
+/** Cookie lido pelo proxy (src/proxy.ts) para proteger as rotas. Guarda só o perfil. */
+export const SESSION_COOKIE = "nfit_session";
+
+function setSessionCookie(role: string | null) {
+  if (typeof document === "undefined") return;
+  const secure = location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = role
+    ? `${SESSION_COOKIE}=${role}; Path=/; Max-Age=${60 * 60 * 24 * 30}; SameSite=Lax${secure}`
+    : `${SESSION_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax${secure}`;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -61,7 +74,10 @@ export function setToken(token: string | null) {
   if (typeof window === "undefined") return;
   try {
     if (token) localStorage.setItem(TOKEN_KEY, token);
-    else localStorage.removeItem(TOKEN_KEY);
+    else {
+      localStorage.removeItem(TOKEN_KEY);
+      setSessionCookie(null);
+    }
   } catch {
     /* ignore */
   }
@@ -95,7 +111,8 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
   const headers: Record<string, string> = {
     Accept: "application/json",
   };
-  if (opts.body !== undefined) headers["Content-Type"] = "application/json";
+  const isForm = typeof FormData !== "undefined" && opts.body instanceof FormData;
+  if (opts.body !== undefined && !isForm) headers["Content-Type"] = "application/json";
   if (opts.auth !== false) {
     const token = getToken();
     if (token) headers.Authorization = `Bearer ${token}`;
@@ -104,7 +121,11 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
   const res = await fetch(buildUrl(path, opts.query), {
     method: opts.method ?? (opts.body !== undefined ? "POST" : "GET"),
     headers,
-    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    body: isForm
+      ? (opts.body as FormData)
+      : opts.body !== undefined
+        ? JSON.stringify(opts.body)
+        : undefined,
   });
 
   if (res.status === 204) return undefined as T;
@@ -152,8 +173,170 @@ async function realOrMock<T>(
   }
 }
 
+// ── Perfil do personal ─────────────────────────────────────────────────────
+export type PersonalProfile = {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string | null;
+  bio?: string;
+  studioName?: string;
+  timezone?: string;
+  notificationPrefs?: { email: boolean; push: boolean };
+  /** Dados para receber por PIX (QR Code estático, grátis). */
+  pix?: PixConfig | null;
+};
+
+export type PersonalProfileUpdate = Partial<
+  Pick<PersonalProfile, "name" | "bio" | "studioName" | "timezone" | "notificationPrefs" | "pix">
+>;
+
+const MOCK_PROFILE_KEY = "nfit_mock_profile";
+export const MOCK_MESSAGES_PREFIX = "nfit_mock_msgs_";
+const MOCK_EVOLUTION_KEY = "nfit_mock_evolution";
+const MOCK_PHOTO_LIMIT = 12;
+
+type MockEvolution = {
+  photos: { url: string; date: string }[];
+  weights: { date: string; weightKg: number }[];
+};
+
+function readMockEvolution(): MockEvolution {
+  if (typeof window === "undefined") return { photos: [], weights: [] };
+  try {
+    const v = JSON.parse(localStorage.getItem(MOCK_EVOLUTION_KEY) ?? "{}");
+    return { photos: v.photos ?? [], weights: v.weights ?? [] };
+  } catch {
+    return { photos: [], weights: [] };
+  }
+}
+
+function writeMockEvolution(v: MockEvolution) {
+  try {
+    localStorage.setItem(MOCK_EVOLUTION_KEY, JSON.stringify(v));
+  } catch {
+    throw new ApiError("Armazenamento do navegador cheio. Apague algumas fotos.", 413);
+  }
+}
+
+/** No modo mock, mensagens novas ficam no navegador (e aparecem nas outras abas). */
+function readMockMessages(conversationId: string): Message[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(localStorage.getItem(MOCK_MESSAGES_PREFIX + conversationId) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function writeMockMessage(conversationId: string, m: Message) {
+  try {
+    const all = [...readMockMessages(conversationId), m].slice(-200);
+    localStorage.setItem(MOCK_MESSAGES_PREFIX + conversationId, JSON.stringify(all));
+  } catch {
+    /* ignore */
+  }
+}
+
+function defaultPersonalProfile(): PersonalProfile {
+  return {
+    id: currentPersonal.id,
+    name: currentPersonal.name,
+    email: currentPersonal.email,
+    avatarUrl: currentPersonal.avatarUrl,
+    bio: "Personal trainer CREF ativo",
+    studioName: currentPersonal.studioName,
+    timezone: "America/Sao_Paulo",
+    notificationPrefs: { email: true, push: true },
+  };
+}
+
+/** No modo mock, as alterações do perfil ficam salvas no navegador. */
+function readMockProfile(): Partial<PersonalProfile> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(MOCK_PROFILE_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function writeMockProfile(profile: PersonalProfile) {
+  try {
+    localStorage.setItem(MOCK_PROFILE_KEY, JSON.stringify(profile));
+  } catch {
+    /* ignore */
+  }
+}
+
+// ── IA (grátis) ─────────────────────────────────────────────────────────────
+type AiDraftResponse = {
+  draftId: string;
+  generatedByAi: true;
+  status: "draft";
+  workout: Workout;
+  modelMeta: { requestId: string; provider?: string };
+};
+
+const AI_LAST_INPUT_KEY = "nfit_ai_last_input";
+
+/**
+ * Sem backend: chama a rota do próprio Next (/api/ia/treino), que usa
+ * Gemini, Groq ou Ollama grátis. Se nenhuma IA estiver configurada, usa o exemplo.
+ */
+async function generateWithLocalAi(input: {
+  studentId?: string;
+  goal: string;
+  daysPerWeek: number;
+  sessionMinutes: number;
+  level: string;
+  constraints?: string;
+  equipment?: string;
+  prompt?: string;
+}): Promise<AiDraftResponse> {
+  const studentName = input.studentId
+    ? students.find((s) => s.id === input.studentId)?.name
+    : undefined;
+  const res = await fetch("/api/ia/treino", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...input, studentName }),
+  });
+  const requestId = `req-${Date.now()}`;
+  if (res.status === 501) {
+    await delay(600);
+    return {
+      draftId: "draft-mock-001",
+      generatedByAi: true,
+      status: "draft",
+      workout: { ...aiDraftFixture, id: "w-ai-draft", updatedAt: new Date().toISOString() },
+      modelMeta: { requestId, provider: "exemplo" },
+    };
+  }
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.workout) {
+    throw new ApiError(data?.error?.message ?? "Falha na IA", res.status, data?.error?.code);
+  }
+  const w = data.workout as Omit<Workout, "id" | "status" | "generatedByAi" | "updatedAt" | "exerciseCount">;
+  return {
+    draftId: `draft-${Date.now()}`,
+    generatedByAi: true,
+    status: "draft",
+    workout: {
+      ...w,
+      id: "w-ai-draft",
+      status: "draft",
+      generatedByAi: true,
+      updatedAt: new Date().toISOString(),
+      exerciseCount: w.blocks.reduce((n, b) => n + b.exercises.length, 0),
+    },
+    modelMeta: { requestId, provider: data.provider },
+  };
+}
+
 function storeAuth(res: { user: User; token: string }) {
   setToken(res.token);
+  setSessionCookie(res.user.role);
   return res;
 }
 
@@ -269,28 +452,26 @@ export const api = {
   async getPersonalProfile() {
     return realOrMock(
       () =>
-        request<{
-          id: string;
-          name: string;
-          email: string;
-          avatarUrl?: string | null;
-          bio?: string;
-          studioName?: string;
-          timezone?: string;
-          notificationPrefs?: { email: boolean; push: boolean };
-        }>("/personal/profile"),
+        request<PersonalProfile>("/personal/profile"),
       async () => {
         await delay();
-        return {
-          id: currentPersonal.id,
-          name: currentPersonal.name,
-          email: currentPersonal.email,
-          avatarUrl: currentPersonal.avatarUrl,
-          bio: "Personal trainer CREF ativo",
-          studioName: currentPersonal.studioName,
-          timezone: "America/Sao_Paulo",
-          notificationPrefs: { email: true, push: true },
-        };
+        return { ...defaultPersonalProfile(), ...readMockProfile() };
+      },
+    );
+  },
+
+  async updatePersonalProfile(data: PersonalProfileUpdate) {
+    return realOrMock(
+      () =>
+        request<PersonalProfile>("/personal/profile", {
+          method: "PATCH",
+          body: data,
+        }),
+      async () => {
+        await delay();
+        const next = { ...defaultPersonalProfile(), ...readMockProfile(), ...data };
+        writeMockProfile(next);
+        return next;
       },
     );
   },
@@ -464,47 +645,30 @@ export const api = {
     prompt?: string;
   }) {
     if (USE_MOCK) {
-      await delay(1200);
-      return {
-        draftId: "draft-mock-001",
-        generatedByAi: true as const,
-        status: "draft" as const,
-        workout: { ...aiDraftFixture, id: "w-ai-draft" },
-        modelMeta: { requestId: "mock-req-001" },
-      };
+      try {
+        sessionStorage.setItem(AI_LAST_INPUT_KEY, JSON.stringify(input));
+      } catch {
+        /* ignore */
+      }
+      return generateWithLocalAi(input);
     }
     // Backend MVP is synchronous: POST returns draft (no job poll).
-    return request<{
-      draftId: string;
-      generatedByAi: true;
-      status: "draft";
-      workout: Workout;
-      modelMeta: { requestId: string };
-    }>("/ai/workouts/generate", { method: "POST", body: input });
+    return request<AiDraftResponse>("/ai/workouts/generate", { method: "POST", body: input });
   },
 
   async regenerateWorkoutAi(draftId: string) {
     if (USE_MOCK) {
-      await delay(1000);
-      return {
-        draftId: "draft-mock-001",
-        generatedByAi: true as const,
-        status: "draft" as const,
-        workout: {
-          ...aiDraftFixture,
-          title: "Plano regenerado — rascunho IA",
-          updatedAt: new Date().toISOString(),
-        },
-        modelMeta: { requestId: "mock-req-002" },
-      };
+      let last: Parameters<typeof generateWithLocalAi>[0] | null = null;
+      try {
+        last = JSON.parse(sessionStorage.getItem(AI_LAST_INPUT_KEY) ?? "null");
+      } catch {
+        /* ignore */
+      }
+      return generateWithLocalAi(
+        last ?? { goal: "Hipertrofia", daysPerWeek: 4, sessionMinutes: 60, level: "Intermediário" },
+      );
     }
-    return request<{
-      draftId: string;
-      generatedByAi: true;
-      status: "draft";
-      workout: Workout;
-      modelMeta: { requestId: string };
-    }>("/ai/workouts/regenerate", {
+    return request<AiDraftResponse>("/ai/workouts/regenerate", {
       method: "POST",
       body: { draftId },
     });
@@ -622,6 +786,17 @@ export const api = {
     );
   },
 
+  /** Dados de PIX do personal, para o aluno pagar. */
+  async getPaymentInfo(): Promise<{ pix: PixConfig | null }> {
+    return realOrMock(
+      () => request<{ pix: PixConfig | null }>("/student/payment-info"),
+      async () => {
+        await delay(100);
+        return { pix: readMockProfile().pix ?? null };
+      },
+    );
+  },
+
   async getStudentInvoices() {
     return realOrMock(
       async () => {
@@ -643,16 +818,87 @@ export const api = {
         request<{
           weights: { date: string; weightKg: number }[];
           measurements: Record<string, unknown>[];
-          photos: string[];
+          photos: { url: string; date: string }[];
         }>("/student/evolution"),
       async () => {
         await delay();
         const list = assessmentsByStudent["s-001"] ?? [];
+        const extra = readMockEvolution();
         return {
-          weights: list.map((a) => ({ date: a.date, weightKg: a.weightKg ?? 0 })),
+          weights: [
+            ...list.map((a) => ({ date: a.date, weightKg: a.weightKg ?? 0 })),
+            ...extra.weights,
+          ].sort((a, b) => a.date.localeCompare(b.date)),
           measurements: list.map((a) => ({ date: a.date, ...a.measurements })),
-          photos: [] as string[],
+          photos: extra.photos,
         };
+      },
+    );
+  },
+
+  /** Envia uma foto (já comprimida no navegador) e devolve a URL pública. */
+  async uploadPhoto(file: File): Promise<{ url: string }> {
+    const blob = await compressImage(file);
+    if (USE_MOCK) {
+      await delay(200);
+      // mock: guarda a imagem pequena direto no navegador
+      const small = await compressImage(file, { maxSide: 720, quality: 0.7 });
+      return { url: await blobToDataUrl(small) };
+    }
+    const form = new FormData();
+    form.append("file", blob, file.name.replace(/\.\w+$/, "") + ".jpg");
+    return request<{ url: string }>("/uploads", { method: "POST", body: form });
+  },
+
+  async addEvolutionPhoto(url: string) {
+    return realOrMock(
+      () =>
+        request<{ url: string; date: string }>("/student/evolution/photos", {
+          method: "POST",
+          body: { url },
+        }),
+      async () => {
+        const v = readMockEvolution();
+        const photo = { url, date: new Date().toISOString() };
+        if (v.photos.length >= MOCK_PHOTO_LIMIT) {
+          throw new ApiError(`Limite de ${MOCK_PHOTO_LIMIT} fotos no modo demonstração.`, 413);
+        }
+        writeMockEvolution({ ...v, photos: [...v.photos, photo] });
+        return photo;
+      },
+    );
+  },
+
+  async removeEvolutionPhoto(url: string) {
+    return realOrMock(
+      () =>
+        request<void>("/student/evolution/photos", {
+          method: "DELETE",
+          query: { url },
+        }),
+      async () => {
+        const v = readMockEvolution();
+        writeMockEvolution({ ...v, photos: v.photos.filter((p) => p.url !== url) });
+      },
+    );
+  },
+
+  async addWeight(weightKg: number) {
+    return realOrMock(
+      () =>
+        request<{ date: string; weightKg: number }>("/student/evolution/weights", {
+          method: "POST",
+          body: { weightKg },
+        }),
+      async () => {
+        await delay(150);
+        const v = readMockEvolution();
+        const entry = { date: new Date().toISOString().slice(0, 10), weightKg };
+        writeMockEvolution({
+          ...v,
+          weights: [...v.weights.filter((w) => w.date !== entry.date), entry],
+        });
+        return entry;
       },
     );
   },
@@ -715,13 +961,19 @@ export const api = {
           `/conversations/${conversationId}/messages`,
         ),
       async () => {
-        await delay();
-        return { items: messagesByConversation[conversationId] ?? [] };
+        await delay(120);
+        return {
+          items: [
+            ...(messagesByConversation[conversationId] ?? []),
+            ...readMockMessages(conversationId),
+          ],
+        };
       },
     );
   },
 
-  async sendMessage(conversationId: string, body: string) {
+  /** senderId só é usado no modo mock (no real, a API sabe quem enviou pelo JWT). */
+  async sendMessage(conversationId: string, body: string, senderId?: string) {
     return realOrMock(
       () =>
         request<{
@@ -734,13 +986,15 @@ export const api = {
           body: { body },
         }),
       async () => {
-        await delay();
-        return {
-          id: `m-${Date.now()}`,
-          senderId: currentPersonal.id,
+        await delay(150);
+        const m = {
+          id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          senderId: senderId ?? currentPersonal.id,
           body,
           createdAt: new Date().toISOString(),
         };
+        writeMockMessage(conversationId, m);
+        return m;
       },
     );
   },
@@ -857,7 +1111,7 @@ export const api = {
           bodyFatPercent: data.bodyFatPercent as number | undefined,
           measurements: (data.measurements as object) ?? {},
           notes: data.notes as string | undefined,
-          photoUrls: [],
+          photoUrls: (data.photoUrls as string[] | undefined) ?? [],
           createdAt: new Date().toISOString(),
         };
       },

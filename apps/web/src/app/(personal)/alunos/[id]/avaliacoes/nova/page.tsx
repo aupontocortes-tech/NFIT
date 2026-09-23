@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card, Input, PageHeader, Textarea } from "@/components/ui";
+import { Button, Card, Input, PageHeader, PhotoPicker, Textarea } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
 import Link from "next/link";
@@ -12,6 +12,7 @@ export default function NovaAvaliacaoPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
     weightKg: "",
@@ -36,6 +37,7 @@ export default function NovaAvaliacaoPage() {
           chest: form.chest ? Number(form.chest) : undefined,
         },
         notes: form.notes,
+        photoUrls: photos,
       });
       toast("Avaliação salva");
       router.push(`/alunos/${id}`);
@@ -90,6 +92,15 @@ export default function NovaAvaliacaoPage() {
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
           />
+          <div className="sm:col-span-2">
+            <p className="mb-2 text-sm font-medium text-text">Fotos (opcional)</p>
+            <PhotoPicker
+              photos={photos}
+              onUploaded={(url) => setPhotos((p) => [...p, url])}
+              onRemove={(url) => setPhotos((p) => p.filter((x) => x !== url))}
+              max={6}
+            />
+          </div>
           <div className="flex gap-2 sm:col-span-2">
             <Button type="submit" loading={loading}>
               Salvar

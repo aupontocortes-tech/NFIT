@@ -57,9 +57,15 @@ export default function GerarIaPage() {
           workout: res.workout,
         }),
       );
+      if (res.modelMeta.provider === "exemplo") {
+        toast("IA não configurada — mostrando um exemplo. Veja o .env.example.", "info");
+      }
       router.push("/treinos/gerar/rascunho");
-    } catch {
-      toast("Não foi possível gerar. Tente de novo.", "error");
+    } catch (err) {
+      toast(
+        err instanceof Error && err.message ? err.message : "Não foi possível gerar. Tente de novo.",
+        "error",
+      );
     } finally {
       setLoading(false);
     }

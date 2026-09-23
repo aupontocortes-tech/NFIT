@@ -22,7 +22,15 @@ export default function LoginPage() {
     try {
       const res = await api.login(email, password);
       toast("Login realizado");
-      router.push(res.user.role === "aluno" ? "/aluno/inicio" : "/dashboard");
+      const home = res.user.role === "aluno" ? "/aluno/inicio" : "/dashboard";
+      // Volta para a página que a pessoa tentou abrir antes do login
+      const next = new URLSearchParams(window.location.search).get("next");
+      const nextIsAluno = next === "/aluno" || !!next?.startsWith("/aluno/");
+      const allowed =
+        next?.startsWith("/") &&
+        !next.startsWith("//") &&
+        (res.user.role === "aluno") === nextIsAluno;
+      router.push(allowed && next ? next : home);
     } catch {
       setError("E-mail ou senha incorretos");
     } finally {

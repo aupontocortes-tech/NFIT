@@ -1,6 +1,8 @@
 "use client";
 
+import { PixPayment } from "@/components/payments/PixPayment";
 import { Badge, Button, Card, PageHeader, Skeleton } from "@/components/ui";
+import { useProfile } from "@/lib/profile";
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
 import type { Invoice } from "@/lib/mocks";
@@ -14,6 +16,7 @@ export default function CobrancaDetalhePage() {
   const { toast } = useToast();
   const [inv, setInv] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(false);
+  const profile = useProfile();
 
   useEffect(() => {
     api.getInvoice(id).then(setInv).catch(() => setInv(null));
@@ -61,6 +64,27 @@ export default function CobrancaDetalhePage() {
           </p>
         ) : null}
       </Card>
+      {inv.status !== "paid" ? (
+        <Card className="mt-4 max-w-lg">
+          <h2 className="text-subtitle mb-3">PIX desta cobrança</h2>
+          {profile?.pix ? (
+            <PixPayment
+              config={profile.pix}
+              amount={inv.amount.amount}
+              txid={inv.id}
+              description={inv.description}
+            />
+          ) : (
+            <p className="text-sm text-text-muted">
+              Cadastre sua chave PIX em{" "}
+              <Link href="/configuracoes" className="text-brand underline">
+                Configurações
+              </Link>{" "}
+              para gerar o QR Code.
+            </p>
+          )}
+        </Card>
+      ) : null}
     </div>
   );
 }

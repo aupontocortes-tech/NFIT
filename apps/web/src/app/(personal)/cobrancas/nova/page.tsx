@@ -2,7 +2,8 @@
 
 import { Button, Card, Input, PageHeader, Select } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+import { hasErrors, parseMoneyBR, validateInvoice } from "@/lib/validators";
 import type { Student } from "@/lib/mocks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,18 +25,25 @@ export default function NovaCobrancaPage() {
     api.listStudents().then((r) => setStudents(r.items));
   }, []);
 
+  const [submitted, setSubmitted] = useState(false);
+  const errors = submitted ? validateInvoice(form) : {};
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSubmitted(true);
+    if (hasErrors(validateInvoice(form))) return;
     setLoading(true);
     try {
       const inv = await api.createInvoice({
         studentId: form.studentId,
-        description: form.description,
-        amount: Number(form.amount),
+        description: form.description.trim(),
+        amount: parseMoneyBR(form.amount),
         dueDate: form.dueDate,
       });
       toast("Cobrança criada");
       router.push(`/cobrancas/${inv.id}`);
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : "Não foi possível criar a cobrança", "error");
     } finally {
       setLoading(false);
     }
@@ -45,12 +53,12 @@ export default function NovaCobrancaPage() {
     <div>
       <PageHeader title="Nova cobrança" />
       <Card className="max-w-lg">
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} noValidate className="space-y-4">
           <Select
             label="Aluno"
             value={form.studentId}
             onChange={(e) => setForm({ ...form, studentId: e.target.value })}
-            required
+            error={errors.studentId}
           >
             <option value="">Selecione</option>
             {students.map((s) => (
@@ -63,22 +71,22 @@ export default function NovaCobrancaPage() {
             label="Descrição"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            required
+            error={errors.description}
           />
           <Input
             label="Valor (R$)"
-            type="number"
-            step="0.01"
+            inputMode="decimal"
+            placeholder="350,00"
             value={form.amount}
             onChange={(e) => setForm({ ...form, amount: e.target.value })}
-            required
+            error={errors.amount}
           />
           <Input
             label="Vencimento"
             type="date"
             value={form.dueDate}
             onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-            required
+            error={errors.dueDate}
           />
           <div className="flex gap-2">
             <Button type="submit" loading={loading}>

@@ -22,16 +22,22 @@ const statusTone = {
 } as const;
 
 export default function AlunosPage() {
-  const [items, setItems] = useState<Student[] | null>(null);
+  const [result, setResult] = useState<{ key: string; items: Student[] } | null>(null);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
 
+  // Busca de novo quando o filtro muda; ignora respostas antigas
+  const key = JSON.stringify({ q, status });
   useEffect(() => {
-    setItems(null);
+    let alive = true;
     api
       .listStudents({ q: q || undefined, status: status || undefined })
-      .then((r) => setItems(r.items));
-  }, [q, status]);
+      .then((r) => alive && setResult({ key, items: r.items }));
+    return () => {
+      alive = false;
+    };
+  }, [key, q, status]);
+  const items = result?.key === key ? result.items : null;
 
   return (
     <div>

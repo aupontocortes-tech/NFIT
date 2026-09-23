@@ -31,16 +31,19 @@ export default function RascunhoIaPage() {
   );
 
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("ai-draft");
-      if (raw) {
-        const parsed = JSON.parse(raw) as { draftId: string; workout: Workout };
-        setDraftId(parsed.draftId);
-        setWorkout(parsed.workout);
+    // Lê o rascunho salvo pela tela anterior (só existe no navegador)
+    Promise.resolve().then(() => {
+      try {
+        const raw = sessionStorage.getItem("ai-draft");
+        if (raw) {
+          const parsed = JSON.parse(raw) as { draftId: string; workout: Workout };
+          setDraftId(parsed.draftId);
+          setWorkout(parsed.workout);
+        }
+      } catch {
+        /* keep fixture */
       }
-    } catch {
-      /* keep fixture */
-    }
+    });
     api.listStudents({ status: "active" }).then((r) => setStudents(r.items));
   }, []);
 
