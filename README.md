@@ -1,47 +1,39 @@
 # nfit
 
-Monorepo do **nfit** — produto para personal trainer e educação física.
+App Next.js para personal trainer e educação física.
 
 ```
-apps/web   Frontend Next.js (Fase 1, cliente API ao vivo)
-apps/api   Backend NestJS + Prisma + PostgreSQL (o time de API cuida)
-docs/api   Specs OpenAPI do backend (o time de API cuida)
+/          Frontend Next.js (raiz do repo — deploy Vercel)
+apps/api   Backend NestJS + Prisma (quando existir)
+docs/      Specs e docs
 ```
 
-## Frontend (`apps/web`)
+## Rodar local
 
 ```bash
-cd apps/web
 cp .env.example .env.local
 npm install
 npm run dev
 ```
 
-O `.env.local` precisa de:
+`.env.local`:
 
 ```
 NEXT_PUBLIC_API_BASE=http://localhost:3001/api/v1
-NEXT_PUBLIC_USE_MOCK=false
+NEXT_PUBLIC_USE_MOCK=true
 ```
 
 - App: [http://localhost:3000](http://localhost:3000)
-- JWT: o client grava o token e manda `Authorization: Bearer …`
-- Com `USE_MOCK=false` a API em `apps/api` precisa estar rodando
-- Swagger: [http://localhost:3001/api/docs](http://localhost:3001/api/docs)
-
-### Escopo da Fase 1
-
-Auth (login / cadastro / convite), dashboard, alunos, treinos (manual + rascunho IA), agenda, chat, cobranças, avaliações, área do aluno.
+- Com `USE_MOCK=false` a API precisa estar no ar
 
 ### Seed (quando o back popular o banco)
 
 - `personal@nfit.local` / `senha12345`
 - `aluno@nfit.local` / `senha12345`
 
-## Backend
+## Vercel
 
-O Desenvolvedor Código instala o Nest em `apps/api`. Este commit de front não cria nem altera a API.
+Root Directory: **deixe vazio** (o Next está na raiz).  
+Env: `NEXT_PUBLIC_USE_MOCK=true`, `NEXT_PUBLIC_API_BASE=http://localhost:3001/api/v1`
 
-## Sem deploy
-
-Sem pipeline de deploy e sem chaves de APIs pagas no repositório. Não commite `.env.local`.
+Não commite `.env.local`.
