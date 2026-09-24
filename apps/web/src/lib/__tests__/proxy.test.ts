@@ -6,24 +6,26 @@ function run(path: string, role?: string) {
   const req = new NextRequest(new URL(path, "http://localhost:3000"), {
     headers: role ? { cookie: `nfit_session=${role}` } : {},
   });
-  return proxy(req).headers.get("location");
+  return proxy(req);
 }
 
-describe("proteção de rotas", () => {
-  it("sem login vai para /login com ?next", () => {
-    expect(run("/alunos")).toBe("http://localhost:3000/login?next=%2Falunos");
+describe("acesso aberto (sem login)", () => {
+  it("sem cookie na área personal segue e grava sessão", () => {
+    const res = run("/alunos");
+    expect(res.headers.get("location")).toBeNull();
+    expect(res.cookies.get("nfit_session")?.value).toBe("personal");
   });
-  it("personal não entra na área do aluno", () => {
-    expect(run("/aluno/inicio", "personal")).toBe("http://localhost:3000/dashboard");
+  it("sem cookie na área aluno segue e grava sessão aluno", () => {
+    const res = run("/aluno/inicio");
+    expect(res.headers.get("location")).toBeNull();
+    expect(res.cookies.get("nfit_session")?.value).toBe("aluno");
   });
-  it("aluno não entra na área do personal", () => {
-    expect(run("/dashboard", "aluno")).toBe("http://localhost:3000/aluno/inicio");
+  it("com cookie de personal em /login vai pro dashboard", () => {
+    expect(run("/login", "personal").headers.get("location")).toBe(
+      "http://localhost:3000/dashboard",
+    );
   });
-  it("logado não vê /login", () => {
-    expect(run("/login", "personal")).toBe("http://localhost:3000/dashboard");
-  });
-  it("acesso permitido segue normal", () => {
-    expect(run("/alunos/s-001", "personal")).toBeNull();
-    expect(run("/aluno/chat", "aluno")).toBeNull();
+  it("já com sessão personal segue normal", () => {
+    expect(run("/alunos/s-001", "personal").headers.get("location")).toBeNull();
   });
 });

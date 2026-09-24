@@ -1,38 +1,25 @@
 "use client";
 
-import { Button, Card, Input } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+/** Por enquanto sem e-mail/senha — um toque e entra. */
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
+  async function entrar() {
     setLoading(true);
     try {
-      const res = await api.login(email, password);
-      toast("Login realizado");
-      const home = res.user.role === "aluno" ? "/aluno/inicio" : "/dashboard";
-      // Volta para a página que a pessoa tentou abrir antes do login
-      const next = new URLSearchParams(window.location.search).get("next");
-      const nextIsAluno = next === "/aluno" || !!next?.startsWith("/aluno/");
-      const allowed =
-        next?.startsWith("/") &&
-        !next.startsWith("//") &&
-        (res.user.role === "aluno") === nextIsAluno;
-      router.push(allowed && next ? next : home);
+      await api.login("personal@nfit.local", "senha12345");
+      toast("Pronto");
+      router.push("/dashboard");
     } catch {
-      setError("E-mail ou senha incorretos");
+      toast("Não foi possível entrar", "error");
     } finally {
       setLoading(false);
     }
@@ -40,40 +27,13 @@ export default function LoginPage() {
 
   return (
     <Card>
-      <h1 className="text-title mb-1">Entrar</h1>
+      <h1 className="text-title mb-1">nfit</h1>
       <p className="mb-6 text-body-sm text-text-muted">
-        personal@nfit.local / aluno@nfit.local — senha12345
+        Acesso liberado — sem e-mail nem senha por enquanto.
       </p>
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <Input
-          label="E-mail"
-          type="email"
-          placeholder="E-mail"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <Input
-          label="Senha"
-          type="password"
-          placeholder="Senha"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          error={error}
-        />
-        <Button type="submit" loading={loading} size="lg">
-          Entrar
-        </Button>
-      </form>
-      <div className="mt-4 flex flex-col gap-2 text-center text-sm">
-        <Link href="/esqueci-senha" className="text-brand hover:underline">
-          Esqueci a senha
-        </Link>
-        <Link href="/cadastro" className="text-text-muted hover:text-text">
-          Criar conta Personal
-        </Link>
-      </div>
+      <Button onClick={entrar} loading={loading} size="lg" className="w-full">
+        Entrar
+      </Button>
     </Card>
   );
 }
