@@ -133,7 +133,7 @@ export function ChatThread({
                 <div
                   className={cn(
                     "max-w-[80%] rounded-[var(--radius-md)] px-3 py-2 text-sm",
-                    mine ? "bg-brand text-text-inverse" : "bg-gray-100 text-text",
+                    mine ? "bg-brand text-text-inverse" : "bg-fill text-text",
                     m.status === "failed" && "bg-red-50 text-error ring-1 ring-error",
                   )}
                 >

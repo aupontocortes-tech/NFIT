@@ -29,7 +29,7 @@ export default function AvaliacoesPage() {
           {students.map((s) => (
             <li key={s.id}>
               <Link href={`/alunos/${s.id}`}>
-                <Card className="flex items-center gap-3 hover:bg-gray-50">
+                <Card className="flex items-center gap-3 hover:bg-hover">
                   <Avatar name={s.name} />
                   <div>
                     <p className="font-medium">{s.name}</p>

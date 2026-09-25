@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, Card, Input, PageHeader, Select, Skeleton, Textarea } from "@/components/ui";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useToast } from "@/components/ui/Toast";
 import { api, type PersonalProfile } from "@/lib/api";
 import { resetProfile, setProfile } from "@/lib/profile";
@@ -166,6 +167,13 @@ export default function ConfiguracoesPage() {
   return (
     <div>
       <PageHeader title="Configurações" />
+      <Card className="mb-4 flex max-w-lg items-center justify-between gap-4">
+        <div>
+          <h2 className="text-subtitle">Aparência</h2>
+          <p className="text-caption">Letras grandes no claro ou no escuro.</p>
+        </div>
+        <ThemeToggle labeled />
+      </Card>
       <form onSubmit={save} className="max-w-lg space-y-4">
         <Card className="space-y-4">
           <h2 className="text-subtitle">Perfil</h2>

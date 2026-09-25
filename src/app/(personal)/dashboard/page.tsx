@@ -73,12 +73,12 @@ export default function DashboardPage() {
           const Icon = c.icon;
           return (
             <Link key={c.label} href={c.href}>
-              <Card className="cursor-pointer transition hover:bg-gray-50">
+              <Card className="cursor-pointer transition hover:bg-hover">
                 <div className="flex items-start justify-between">
                   <p className="text-caption">{c.label}</p>
                   <Icon className="h-4 w-4 text-brand" />
                 </div>
-                <p className="mt-2 text-3xl font-bold tabular-nums">{c.value}</p>
+                <p className="mt-2 text-4xl font-bold tabular-nums">{c.value}</p>
               </Card>
             </Link>
           );

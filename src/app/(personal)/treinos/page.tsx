@@ -83,7 +83,7 @@ export default function TreinosPage() {
             <li key={w.id}>
               <Link
                 href={`/treinos/${w.id}`}
-                className="block rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-sm transition hover:bg-gray-50"
+                className="block rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-sm transition hover:bg-hover"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium">{w.title}</p>

@@ -18,11 +18,11 @@ const tones: Record<Tone, string> = {
   active: "bg-status-active text-status-active-text",
   paused: "bg-status-paused text-status-paused-text",
   paid: "bg-status-active text-status-active-text",
-  pending: "bg-amber-100 text-amber-800",
-  overdue: "bg-red-100 text-red-700",
+  pending: "bg-brand-muted text-brand-hover",
+  overdue: "bg-brand text-text-inverse",
   ai: "bg-ai text-ai-text",
   invite: "bg-brand-muted text-brand-hover",
-  default: "bg-gray-100 text-text-muted",
+  default: "bg-fill text-text-muted",
 };
 
 const labels: Partial<Record<Tone, string>> = {
@@ -45,7 +45,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold",
         tones[tone],
         className,
       )}

@@ -61,7 +61,7 @@ export default function CobrancasPage() {
             <li key={inv.id}>
               <Link
                 href={`/cobrancas/${inv.id}`}
-                className="flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-border bg-surface p-4 hover:bg-gray-50"
+                className="flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-border bg-surface p-4 hover:bg-hover"
               >
                 <div>
                   <p className="font-medium">{inv.studentName}</p>

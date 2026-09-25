@@ -86,7 +86,7 @@ export default function AlunosPage() {
             <li key={s.id}>
               <Link
                 href={`/alunos/${s.id}`}
-                className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-sm transition hover:bg-gray-50"
+                className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-sm transition hover:bg-hover"
               >
                 <Avatar name={s.name} src={s.avatarUrl} />
                 <div className="min-w-0 flex-1">

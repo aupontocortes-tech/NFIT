@@ -59,7 +59,7 @@ export function PixPayment({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={qr} alt="QR Code PIX" className="h-full w-full" />
         ) : (
-          <div className="h-52 w-52 animate-pulse rounded bg-gray-100" />
+          <div className="h-52 w-52 animate-pulse rounded bg-fill" />
         )}
       </div>
       <p className="text-caption">
@@ -69,7 +69,7 @@ export function PixPayment({
         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
         {copied ? "Código copiado!" : "Copiar PIX copia e cola"}
       </Button>
-      <p className="break-all rounded-[var(--radius-sm)] bg-gray-50 p-2 text-left font-mono text-[10px] text-text-muted">
+      <p className="break-all rounded-[var(--radius-sm)] bg-fill p-2 text-left font-mono text-sm text-text-muted">
         {payload}
       </p>
       <p className="text-caption">

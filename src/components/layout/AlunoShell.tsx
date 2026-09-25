@@ -1,5 +1,6 @@
 "use client";
 
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { cn } from "@/lib/utils";
 import {
   Calendar,
@@ -27,9 +28,12 @@ export function AlunoShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-bg">
-      <header className="sticky top-0 z-20 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur">
-        <p className="text-sm font-semibold text-brand">nfit</p>
-        <p className="text-caption">Olá, Carlos</p>
+      <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur">
+        <div>
+          <p className="text-lg font-bold text-brand">nfit</p>
+          <p className="text-caption">Olá, Carlos</p>
+        </div>
+        <ThemeToggle labeled />
       </header>
       <main
         className={cn(
@@ -52,11 +56,11 @@ export function AlunoShell({ children }: { children: ReactNode }) {
                   <Link
                     href={item.href}
                     className={cn(
-                      "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
+                      "flex min-h-16 flex-col items-center justify-center gap-1 text-sm font-semibold",
                       active ? "text-brand" : "text-text-muted",
                     )}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-6 w-6" />
                     {item.label}
                   </Link>
                 </li>

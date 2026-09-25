@@ -144,7 +144,7 @@ export default function AlunoDetalhePage() {
             {invoices.map((inv) => (
               <li key={inv.id}>
                 <Link href={`/cobrancas/${inv.id}`}>
-                  <Card className="flex items-center justify-between hover:bg-gray-50">
+                  <Card className="flex items-center justify-between hover:bg-hover">
                     <div>
                       <p className="font-medium">{inv.description}</p>
                       <p className="text-caption">

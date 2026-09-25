@@ -1,31 +1,63 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --color-brand: #0d9488;
-  --color-brand-hover: #0f766e;
-  --color-brand-muted: #ccfbf1;
-  --color-bg: #fafafa;
+  --color-brand: #e50914;
+  --color-brand-hover: #b20710;
+  --color-brand-muted: #fee2e2;
+  --color-bg: #ffffff;
   --color-surface: #ffffff;
-  --color-border: #e5e7eb;
-  --color-text: #111827;
-  --color-text-muted: #6b7280;
+  --color-border: #e5e5e5;
+  --color-text: #0a0a0a;
+  --color-text-muted: #404040;
   --color-text-inverse: #ffffff;
-  --color-success: #16a34a;
-  --color-warning: #d97706;
+  --color-hover: #f5f5f5;
+  --color-fill: #f5f5f5;
+  --color-success: #0a0a0a;
+  --color-warning: #dc2626;
   --color-error: #dc2626;
-  --color-info: #2563eb;
-  --color-status-draft: #fef3c7;
-  --color-status-draft-text: #b45309;
-  --color-status-active: #dcfce7;
-  --color-status-active-text: #15803d;
-  --color-status-paused: #f3f4f6;
-  --color-status-paused-text: #4b5563;
-  --color-ai: #dbeafe;
-  --color-ai-text: #1d4ed8;
+  --color-info: #dc2626;
+  --color-status-draft: #f5f5f5;
+  --color-status-draft-text: #0a0a0a;
+  --color-status-active: #0a0a0a;
+  --color-status-active-text: #ffffff;
+  --color-status-paused: #f5f5f5;
+  --color-status-paused-text: #404040;
+  --color-ai: #fee2e2;
+  --color-ai-text: #991b1b;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-xl: 20px;
+  color-scheme: light;
+}
+
+html.dark {
+  --color-brand: #e50914;
+  --color-brand-hover: #f40612;
+  --color-brand-muted: #3d0a0c;
+  --color-bg: #141414;
+  --color-surface: #181818;
+  --color-border: #2a2a2a;
+  --color-text: #ffffff;
+  --color-text-muted: #b3b3b3;
+  --color-text-inverse: #ffffff;
+  --color-hover: #2a2a2a;
+  --color-fill: #2a2a2a;
+  --color-success: #ffffff;
+  --color-warning: #e50914;
+  --color-error: #e50914;
+  --color-info: #e50914;
+  --color-status-draft: #2a2a2a;
+  --color-status-draft-text: #ffffff;
+  --color-status-active: #ffffff;
+  --color-status-active-text: #000000;
+  --color-status-paused: #2a2a2a;
+  --color-status-paused-text: #b3b3b3;
+  --color-ai: #3d0a0c;
+  --color-ai-text: #ffffff;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -38,6 +70,8 @@
   --color-text: var(--color-text);
   --color-text-muted: var(--color-text-muted);
   --color-text-inverse: var(--color-text-inverse);
+  --color-hover: var(--color-hover);
+  --color-fill: var(--color-fill);
   --color-success: var(--color-success);
   --color-warning: var(--color-warning);
   --color-error: var(--color-error);
@@ -63,6 +97,7 @@
 
 html {
   -webkit-tap-highlight-color: transparent;
+  font-size: 18px;
 }
 
 body {
@@ -73,29 +108,29 @@ body {
 }
 
 .text-display {
-  @apply text-2xl sm:text-3xl font-bold tracking-tight leading-tight;
+  @apply text-3xl sm:text-4xl font-bold tracking-tight leading-tight;
 }
 
 .text-title {
-  @apply text-xl font-semibold leading-tight;
+  @apply text-2xl font-semibold leading-tight;
 }
 
 .text-subtitle {
-  @apply text-lg font-medium;
+  @apply text-xl font-semibold;
 }
 
 .text-body {
-  @apply text-base font-normal leading-relaxed;
+  @apply text-lg font-normal leading-relaxed;
 }
 
 .text-body-sm {
-  @apply text-sm leading-relaxed;
+  @apply text-base leading-relaxed;
 }
 
 .text-caption {
-  @apply text-xs text-text-muted;
+  @apply text-base font-medium text-text-muted;
 }
 
 .text-button {
-  @apply text-sm font-medium;
+  @apply text-base font-semibold;
 }

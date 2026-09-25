@@ -27,7 +27,7 @@ export function Input({
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       {label ? (
-        <label htmlFor={inputId} className="text-sm font-medium text-text">
+        <label htmlFor={inputId} className="text-base font-semibold text-text">
           {label}
         </label>
       ) : null}
@@ -36,7 +36,7 @@ export function Input({
           id={inputId}
           type={isPassword && show ? "text" : type}
           className={cn(
-            "h-11 w-full rounded-[var(--radius-md)] border bg-surface px-3 text-base text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1",
+            "h-12 w-full rounded-[var(--radius-md)] border bg-surface px-3 text-lg text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1",
             error ? "border-error" : "border-border",
             isPassword && "pr-11",
           )}
@@ -54,7 +54,7 @@ export function Input({
           </button>
         ) : null}
       </div>
-      {error ? <p className="text-xs text-error">{error}</p> : null}
+      {error ? <p className="text-sm font-medium text-error">{error}</p> : null}
       {!error && helper ? <p className="text-caption">{helper}</p> : null}
     </div>
   );
@@ -72,19 +72,19 @@ export function Textarea({
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       {label ? (
-        <label htmlFor={inputId} className="text-sm font-medium text-text">
+        <label htmlFor={inputId} className="text-base font-semibold text-text">
           {label}
         </label>
       ) : null}
       <textarea
         id={inputId}
         className={cn(
-          "min-h-24 w-full rounded-[var(--radius-md)] border bg-surface px-3 py-2 text-base text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1",
+          "min-h-28 w-full rounded-[var(--radius-md)] border bg-surface px-3 py-2 text-lg text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1",
           error ? "border-error" : "border-border",
         )}
         {...props}
       />
-      {error ? <p className="text-xs text-error">{error}</p> : null}
+      {error ? <p className="text-sm font-medium text-error">{error}</p> : null}
       {!error && helper ? <p className="text-caption">{helper}</p> : null}
     </div>
   );
@@ -103,21 +103,21 @@ export function Select({
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       {label ? (
-        <label htmlFor={inputId} className="text-sm font-medium text-text">
+        <label htmlFor={inputId} className="text-base font-semibold text-text">
           {label}
         </label>
       ) : null}
       <select
         id={inputId}
         className={cn(
-          "h-11 w-full rounded-[var(--radius-md)] border bg-surface px-3 text-base text-text focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1",
+          "h-12 w-full rounded-[var(--radius-md)] border bg-surface px-3 text-lg text-text focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1",
           error ? "border-error" : "border-border",
         )}
         {...props}
       >
         {children}
       </select>
-      {error ? <p className="text-xs text-error">{error}</p> : null}
+      {error ? <p className="text-sm font-medium text-error">{error}</p> : null}
       {!error && helper ? <p className="text-caption">{helper}</p> : null}
     </div>
   );

@@ -1,4 +1,5 @@
 import { ToastProvider } from "@/components/ui/Toast";
+import { themeBootScript } from "@/lib/theme";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0d9488",
+  themeColor: "#e50914",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -38,8 +39,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className="dark" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>

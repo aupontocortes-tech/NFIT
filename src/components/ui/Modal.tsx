@@ -52,7 +52,7 @@ export function Modal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-2 text-text-muted hover:bg-gray-100"
+            className="rounded-md p-2 text-text-muted hover:bg-hover"
             aria-label="Fechar"
           >
             <X className="h-5 w-5" />

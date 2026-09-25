@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar } from "@/components/ui";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useProfile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 import {
@@ -69,13 +70,13 @@ export function PersonalShell({ children }: { children: ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium transition",
+                  "flex min-h-12 items-center gap-3 rounded-[var(--radius-md)] px-3 py-3 text-base font-semibold transition",
                   active
                     ? "bg-brand-muted text-brand-hover"
-                    : "text-text-muted hover:bg-gray-50 hover:text-text",
+                    : "text-text-muted hover:bg-hover hover:text-text",
                 )}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-6 w-6" />
                 {item.label}
               </Link>
             );
@@ -93,10 +94,13 @@ export function PersonalShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-surface/95 px-4 py-3 backdrop-blur md:px-6">
-          <p className="text-sm font-semibold md:hidden">nfit</p>
-          <p className="hidden text-sm text-text-muted md:block">Área do Personal</p>
-          <Avatar name={name || "?"} size="sm" className="md:hidden" />
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur md:px-6">
+          <p className="text-lg font-bold md:hidden">nfit</p>
+          <p className="hidden text-base font-semibold text-text-muted md:block">Área do Personal</p>
+          <div className="flex items-center gap-2">
+            <ThemeToggle labeled />
+            <Avatar name={name || "?"} size="sm" className="md:hidden" />
+          </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-24 md:px-6 md:pb-8">
           {children}
@@ -113,11 +117,11 @@ export function PersonalShell({ children }: { children: ReactNode }) {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
+                    "flex min-h-16 flex-col items-center justify-center gap-1 text-sm font-semibold",
                     active ? "text-brand" : "text-text-muted",
                   )}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-6 w-6" />
                   {item.label}
                 </Link>
               </li>

@@ -28,7 +28,7 @@ export default function ChatInboxPage() {
             <li key={c.id}>
               <Link
                 href={`/chat/${c.peer.id}`}
-                className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-border bg-surface p-4 hover:bg-gray-50"
+                className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-border bg-surface p-4 hover:bg-hover"
               >
                 <Avatar name={c.peer.name} src={c.peer.avatarUrl} />
                 <div className="min-w-0 flex-1">
