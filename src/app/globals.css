@@ -37,23 +37,23 @@ html.dark {
   --color-brand: #e50914;
   --color-brand-hover: #f40612;
   --color-brand-muted: #3d0a0c;
-  --color-bg: #141414;
-  --color-surface: #181818;
-  --color-border: #2a2a2a;
+  --color-bg: #000000;
+  --color-surface: #000000;
+  --color-border: #242424;
   --color-text: #ffffff;
-  --color-text-muted: #b3b3b3;
+  --color-text-muted: #c4c4c4;
   --color-text-inverse: #ffffff;
-  --color-hover: #2a2a2a;
-  --color-fill: #2a2a2a;
+  --color-hover: #0a0a0a;
+  --color-fill: #0a0a0a;
   --color-success: #ffffff;
   --color-warning: #e50914;
   --color-error: #e50914;
   --color-info: #e50914;
-  --color-status-draft: #2a2a2a;
+  --color-status-draft: #111111;
   --color-status-draft-text: #ffffff;
   --color-status-active: #ffffff;
   --color-status-active-text: #000000;
-  --color-status-paused: #2a2a2a;
+  --color-status-paused: #111111;
   --color-status-paused-text: #b3b3b3;
   --color-ai: #3d0a0c;
   --color-ai-text: #ffffff;
@@ -133,4 +133,35 @@ body {
 
 .text-button {
   @apply text-base font-semibold;
+}
+
+.app-word {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.02em;
+  margin: 0;
+  line-height: 0.85;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: #e50914;
+}
+
+.app-letter-n {
+  font-size: 2.75rem;
+}
+
+.app-letter-fit {
+  margin-bottom: 0.12em;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.app-word-lg .app-letter-n {
+  font-size: 3.5rem;
+}
+
+.app-word-lg .app-letter-fit {
+  font-size: 1.7rem;
 }

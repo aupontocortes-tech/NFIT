@@ -1,5 +1,6 @@
 "use client";
 
+import { AppName } from "@/components/ui/AppName";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { cn } from "@/lib/utils";
 import {
@@ -30,7 +31,7 @@ export function AlunoShell({ children }: { children: ReactNode }) {
     <div className="min-h-dvh bg-bg">
       <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur">
         <div>
-          <p className="text-lg font-bold text-brand">nfit</p>
+          <AppName />
           <p className="text-caption">Olá, Carlos</p>
         </div>
         <ThemeToggle labeled />

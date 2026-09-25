@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar } from "@/components/ui";
+import { AppName } from "@/components/ui/AppName";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useProfile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
@@ -52,14 +53,9 @@ export function PersonalShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh bg-bg md:flex">
       <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:flex">
-        <div className="flex items-center gap-2 border-b border-border px-4 py-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] bg-brand text-text-inverse font-bold">
-            P
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold">nfit</p>
-            <p className="truncate text-caption">{studio}</p>
-          </div>
+        <div className="border-b border-border px-4 py-5">
+          <AppName size="lg" />
+          <p className="mt-2 truncate text-caption">{studio}</p>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 p-2">
           {sidebar.map((item) => {
@@ -95,7 +91,7 @@ export function PersonalShell({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur md:px-6">
-          <p className="text-lg font-bold md:hidden">nfit</p>
+          <AppName className="md:hidden" />
           <p className="hidden text-base font-semibold text-text-muted md:block">Área do Personal</p>
           <div className="flex items-center gap-2">
             <ThemeToggle labeled />

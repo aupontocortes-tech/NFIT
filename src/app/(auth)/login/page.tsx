@@ -27,7 +27,6 @@ export default function LoginPage() {
 
   return (
     <Card>
-      <h1 className="text-title mb-1">nfit</h1>
       <p className="mb-6 text-body-sm text-text-muted">
         Acesso liberado — sem e-mail nem senha por enquanto.
       </p>

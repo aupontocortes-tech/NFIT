@@ -15,12 +15,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "nfit",
+  title: "NFIT",
   description: "App de gestão para personal trainers e alunos",
-  applicationName: "nfit",
+  applicationName: "NFIT",
   appleWebApp: {
     capable: true,
-    title: "nfit",
+    title: "NFIT",
     statusBarStyle: "default",
   },
   formatDetection: { telephone: false },
