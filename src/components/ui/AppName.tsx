@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** N bem maior; FIT menor, na mesma base, com relevo. */
+/** Ícone do app ao lado do nome NFIT. */
 export function AppName({
   size = "md",
   className,
@@ -8,10 +8,19 @@ export function AppName({
   size?: "md" | "lg";
   className?: string;
 }) {
+  const px = size === "lg" ? 56 : 36;
   return (
-    <p className={cn("app-word", size === "lg" && "app-word-lg", className)} aria-label="NFIT">
-      <span className="app-letter-n">N</span>
-      <span className="app-letter-fit">FIT</span>
-    </p>
+    <div className={cn("flex w-fit items-center gap-2", className)} aria-label="NFIT">
+      <img
+        src="/icons/icon-192.png"
+        alt=""
+        width={px}
+        height={px}
+        className="shrink-0 rounded-[22%]"
+      />
+      <span className={cn("font-semibold tracking-wide text-text", size === "lg" ? "text-xl" : "text-base")}>
+        NFIT
+      </span>
+    </div>
   );
 }

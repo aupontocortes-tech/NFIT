@@ -87,6 +87,7 @@ export interface EventItem {
   location?: string;
   meetingUrl?: string;
   notes?: string;
+  status?: "scheduled" | "rescheduled" | "cancelled";
 }
 
 export interface Conversation {
@@ -136,16 +137,16 @@ export interface Assessment {
 
 export const currentPersonal: User = {
   id: "p-001",
-  name: "Ana Souza",
-  email: "ana@nfit.dev",
+  name: "Tiago",
+  email: "",
   role: "personal",
   studioName: "Studio nfit",
 };
 
 export const currentAluno: User = {
   id: "s-001",
-  name: "Carlos Mendes",
-  email: "carlos@email.com",
+  name: "",
+  email: "",
   role: "aluno",
 };
 
@@ -233,188 +234,17 @@ export const workouts: Workout[] = [
   },
 ];
 
-export const assignments: Assignment[] = [
-  {
-    id: "a-001",
-    workoutId: "w-001",
-    studentId: "s-001",
-    status: "active",
-    startDate: "2026-03-10",
-    workoutTitle: "Hipertrofia A/B — Intermediário",
-    workout: workouts[0],
-  },
-  {
-    id: "a-002",
-    workoutId: "w-003",
-    studentId: "s-002",
-    status: "active",
-    startDate: "2026-03-12",
-    workoutTitle: "Força iniciante",
-    workout: workouts[2],
-  },
-];
+export const assignments: Assignment[] = [];
 
-export const events: EventItem[] = [
-  {
-    id: "e-001",
-    studentId: "s-001",
-    studentName: "Carlos Mendes",
-    type: "workout",
-    title: "Treino presencial",
-    startsAt: "2026-09-21T09:00:00-03:00",
-    endsAt: "2026-09-21T10:00:00-03:00",
-    location: "Studio nfit",
-  },
-  {
-    id: "e-002",
-    studentId: "s-002",
-    studentName: "Beatriz Lima",
-    type: "assessment",
-    title: "Avaliação física",
-    startsAt: "2026-09-22T14:00:00-03:00",
-    endsAt: "2026-09-22T15:00:00-03:00",
-    location: "Studio nfit",
-  },
-  {
-    id: "e-003",
-    studentId: "s-001",
-    studentName: "Carlos Mendes",
-    type: "call",
-    title: "Check-in online",
-    startsAt: "2026-09-23T18:00:00-03:00",
-    endsAt: "2026-09-23T18:30:00-03:00",
-    meetingUrl: "https://meet.example.com/pulse",
-  },
-];
+export const events: EventItem[] = [];
 
-export const conversations: Conversation[] = [
-  {
-    id: "c-001",
-    peer: { id: "s-001", name: "Carlos Mendes" },
-    lastMessage: "Consegui aumentar a carga no agachamento!",
-    unreadCount: 2,
-    updatedAt: "2026-09-20T18:30:00-03:00",
-  },
-  {
-    id: "c-002",
-    peer: { id: "s-002", name: "Beatriz Lima" },
-    lastMessage: "Ok, te vejo na avaliação.",
-    unreadCount: 0,
-    updatedAt: "2026-09-19T11:00:00-03:00",
-  },
-  {
-    id: "c-003",
-    peer: { id: "s-004", name: "Elena Costa" },
-    lastMessage: "Quando volto aos treinos?",
-    unreadCount: 1,
-    updatedAt: "2026-09-18T16:00:00-03:00",
-  },
-];
+export const conversations: Conversation[] = [];
 
-export const messagesByConversation: Record<string, Message[]> = {
-  "c-001": [
-    {
-      id: "m-1",
-      senderId: "s-001",
-      body: "Oi Ana! Treino de hoje foi ótimo.",
-      createdAt: "2026-09-20T18:00:00-03:00",
-    },
-    {
-      id: "m-2",
-      senderId: "p-001",
-      body: "Que bom, Carlos! Como ficou a sensação no agachamento?",
-      createdAt: "2026-09-20T18:10:00-03:00",
-      readAt: "2026-09-20T18:12:00-03:00",
-    },
-    {
-      id: "m-3",
-      senderId: "s-001",
-      body: "Consegui aumentar a carga no agachamento!",
-      createdAt: "2026-09-20T18:30:00-03:00",
-    },
-  ],
-  "c-002": [
-    {
-      id: "m-4",
-      senderId: "p-001",
-      body: "Bia, lembre da avaliação na segunda.",
-      createdAt: "2026-09-19T10:00:00-03:00",
-      readAt: "2026-09-19T10:30:00-03:00",
-    },
-    {
-      id: "m-5",
-      senderId: "s-002",
-      body: "Ok, te vejo na avaliação.",
-      createdAt: "2026-09-19T11:00:00-03:00",
-    },
-  ],
-};
+export const messagesByConversation: Record<string, Message[]> = {};
 
-export const invoices: Invoice[] = [
-  {
-    id: "i-001",
-    studentId: "s-001",
-    studentName: "Carlos Mendes",
-    description: "Mensalidade setembro/2026",
-    amount: { amount: 350, currency: "BRL" },
-    dueDate: "2026-09-10",
-    status: "overdue",
-  },
-  {
-    id: "i-002",
-    studentId: "s-002",
-    studentName: "Beatriz Lima",
-    description: "Mensalidade setembro/2026",
-    amount: { amount: 350, currency: "BRL" },
-    dueDate: "2026-09-15",
-    status: "paid",
-    paidAt: "2026-09-14T12:00:00Z",
-  },
-  {
-    id: "i-003",
-    studentId: "s-004",
-    studentName: "Elena Costa",
-    description: "Mensalidade agosto/2026",
-    amount: { amount: 300, currency: "BRL" },
-    dueDate: "2026-08-10",
-    status: "pending",
-  },
-];
+export const invoices: Invoice[] = [];
 
-export const assessmentsByStudent: Record<string, Assessment[]> = {
-  "s-001": [
-    {
-      id: "as-001",
-      date: "2026-01-15",
-      weightKg: 82.5,
-      bodyFatPercent: 18.2,
-      measurements: { waist: 86, chest: 102, hip: 98, arm: 36, thigh: 58 },
-      notes: "Baseline",
-      photoUrls: [],
-      createdAt: "2026-01-15T10:00:00Z",
-    },
-    {
-      id: "as-002",
-      date: "2026-03-15",
-      weightKg: 80.1,
-      bodyFatPercent: 16.8,
-      measurements: { waist: 83, chest: 104, hip: 96, arm: 37, thigh: 59 },
-      notes: "Boa evolução",
-      photoUrls: [],
-      createdAt: "2026-03-15T10:00:00Z",
-    },
-  ],
-  "s-002": [
-    {
-      id: "as-003",
-      date: "2026-02-01",
-      weightKg: 62,
-      measurements: { waist: 70, hip: 92 },
-      photoUrls: [],
-      createdAt: "2026-02-01T10:00:00Z",
-    },
-  ],
-};
+export const assessmentsByStudent: Record<string, Assessment[]> = {};
 
 export const dashboardData = {
   activeStudents: 0,

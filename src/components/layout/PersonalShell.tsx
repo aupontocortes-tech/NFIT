@@ -20,6 +20,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
+const iconColor = {
+  "/dashboard": "#3b82f6",
+  "/alunos": "#22c55e",
+  "/treinos": "#f97316",
+  "/agenda": "#eab308",
+  "/chat": "#06b6d4",
+  "/cobrancas": "#ec4899",
+  "/avaliacoes": "#a855f7",
+  "/configuracoes": "#e50914",
+} as const;
+
 const sidebar = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/alunos", label: "Alunos", icon: Users },
@@ -72,7 +83,7 @@ export function PersonalShell({ children }: { children: ReactNode }) {
                     : "text-text-muted hover:bg-hover hover:text-text",
                 )}
               >
-                <Icon className="h-6 w-6" />
+                <Icon className="h-6 w-6 shrink-0" style={{ color: iconColor[item.href] }} />
                 {item.label}
               </Link>
             );
@@ -117,7 +128,7 @@ export function PersonalShell({ children }: { children: ReactNode }) {
                     active ? "text-brand" : "text-text-muted",
                   )}
                 >
-                  <Icon className="h-6 w-6" />
+                  <Icon className="h-6 w-6" style={{ color: iconColor[item.href] }} />
                   {item.label}
                 </Link>
               </li>

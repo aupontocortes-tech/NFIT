@@ -10,8 +10,8 @@ import { useState } from "react";
 export default function AlunoPerfilPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [name, setName] = useState("Carlos Mendes");
-  const [email] = useState("carlos@email.com");
+  const [name, setName] = useState("");
+  const [email] = useState("");
 
   async function logout() {
     await api.logout();

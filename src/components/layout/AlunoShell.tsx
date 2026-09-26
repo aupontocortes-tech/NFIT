@@ -15,11 +15,11 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 const nav = [
-  { href: "/aluno", label: "Treino", icon: Dumbbell, exact: true },
-  { href: "/aluno/agenda", label: "Agenda", icon: Calendar },
-  { href: "/aluno/chat", label: "Chat", icon: MessageCircle },
-  { href: "/aluno/evolucao", label: "Evolução", icon: LineChart },
-  { href: "/aluno/perfil", label: "Perfil", icon: User },
+  { href: "/aluno", label: "Treino", icon: Dumbbell, exact: true, color: "#f97316" },
+  { href: "/aluno/agenda", label: "Agenda", icon: Calendar, color: "#eab308" },
+  { href: "/aluno/chat", label: "Chat", icon: MessageCircle, color: "#06b6d4" },
+  { href: "/aluno/evolucao", label: "Evolução", icon: LineChart, color: "#a855f7" },
+  { href: "/aluno/perfil", label: "Perfil", icon: User, color: "#22c55e" },
 ];
 
 export function AlunoShell({ children }: { children: ReactNode }) {
@@ -32,7 +32,7 @@ export function AlunoShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur">
         <div>
           <AppName />
-          <p className="text-caption">Olá, Carlos</p>
+          <p className="text-caption">Área do aluno</p>
         </div>
         <ThemeToggle labeled />
       </header>
@@ -61,7 +61,7 @@ export function AlunoShell({ children }: { children: ReactNode }) {
                       active ? "text-brand" : "text-text-muted",
                     )}
                   >
-                    <Icon className="h-6 w-6" />
+                    <Icon className="h-6 w-6" style={{ color: item.color }} />
                     {item.label}
                   </Link>
                 </li>

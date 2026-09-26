@@ -1,53 +1,44 @@
 "use client";
 
-import { Badge, Card, Empty, PageHeader, SkeletonList } from "@/components/ui";
+import { ClassCalendar } from "@/components/agenda/ClassCalendar";
+import { PageHeader, Select, Skeleton } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { EventItem } from "@/lib/mocks";
-import { formatDate } from "@/lib/utils";
-import { Calendar } from "lucide-react";
+import type { EventItem, Student } from "@/lib/mocks";
 import { useEffect, useState } from "react";
 
 export default function AlunoAgendaPage() {
   const [items, setItems] = useState<EventItem[] | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [studentId, setStudentId] = useState("");
 
   useEffect(() => {
-    api.listEvents().then((r) =>
-      setItems(r.items.filter((e) => e.studentId === "s-001")),
-    );
+    api.listEvents().then((r) => setItems(r.items)).catch(() => setItems([]));
+    api.listStudents().then((r) => {
+      setStudents(r.items);
+      if (r.items.length === 1) setStudentId(r.items[0].id);
+    });
   }, []);
+
+  const mine = (items ?? []).filter((e) => !studentId || e.studentId === studentId);
 
   return (
     <div>
-      <PageHeader
-        title="Agenda"
-        description="Somente leitura — remarque via chat"
-      />
-      {!items ? (
-        <SkeletonList rows={3} />
-      ) : items.length === 0 ? (
-        <Empty icon={Calendar} title="Nenhum evento" />
-      ) : (
-        <ul className="space-y-3">
-          {items.map((e) => (
-            <li key={e.id}>
-              <Card>
-                <div className="flex justify-between gap-2">
-                  <div>
-                    <p className="font-medium">{e.title}</p>
-                    <p className="text-caption">{formatDate(e.startsAt)}</p>
-                    {e.location ? (
-                      <p className="text-caption">{e.location}</p>
-                    ) : null}
-                  </div>
-                  <Badge tone="default" className="capitalize">
-                    {e.type}
-                  </Badge>
-                </div>
-              </Card>
-            </li>
+      <PageHeader title="Minhas aulas" description="Dia, semana e mês" />
+      {students.length > 1 ? (
+        <Select
+          label="Aluno"
+          className="mb-4"
+          value={studentId}
+          onChange={(e) => setStudentId(e.target.value)}
+        >
+          {students.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
           ))}
-        </ul>
-      )}
+        </Select>
+      ) : null}
+      {!items ? <Skeleton className="h-80 w-full" /> : <ClassCalendar events={mine} readOnly />}
     </div>
   );
 }

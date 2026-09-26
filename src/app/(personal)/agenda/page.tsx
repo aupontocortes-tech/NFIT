@@ -1,23 +1,26 @@
 "use client";
 
+import { ClassCalendar } from "@/components/agenda/ClassCalendar";
 import {
-  Badge,
   Button,
-  Card,
-  Empty,
   Input,
   Modal,
   PageHeader,
   Select,
-  SkeletonList,
+  Skeleton,
   Textarea,
 } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
 import type { EventItem, Student } from "@/lib/mocks";
-import { formatDate } from "@/lib/utils";
-import { Calendar } from "lucide-react";
 import { useEffect, useState } from "react";
+
+function localInput(day: Date) {
+  const x = new Date(day);
+  x.setHours(8, 0, 0, 0);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}T${pad(x.getHours())}:${pad(x.getMinutes())}`;
+}
 
 export default function AgendaPage() {
   const { toast } = useToast();
@@ -27,79 +30,92 @@ export default function AgendaPage() {
   const [form, setForm] = useState({
     studentId: "",
     type: "workout",
-    title: "",
+    title: "Aula",
     startsAt: "",
     endsAt: "",
     location: "",
     notes: "",
   });
 
-  useEffect(() => {
-    api.listEvents().then((r) => setItems(r.items));
-    api.listStudents().then((r) => setStudents(r.items));
-  }, []);
-
-  async function create() {
-    await api.createEvent({
-      ...form,
-      type: form.type as EventItem["type"],
-      studentName: students.find((s) => s.id === form.studentId)?.name,
-    });
-    toast("Evento criado");
-    setOpen(false);
+  async function reload() {
     const r = await api.listEvents();
     setItems(r.items);
+  }
+
+  useEffect(() => {
+    reload().catch(() => setItems([]));
+    api.listStudents().then((r) => setStudents(r.items)).catch(() => setStudents([]));
+  }, []);
+
+  function openOn(day: Date) {
+    const start = localInput(day);
+    const endDate = new Date(day);
+    endDate.setHours(9, 0, 0, 0);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const end = `${endDate.getFullYear()}-${pad(endDate.getMonth() + 1)}-${pad(endDate.getDate())}T09:00`;
+    setForm((f) => ({ ...f, startsAt: start, endsAt: end, title: f.title || "Aula" }));
+    setOpen(true);
+  }
+
+  async function create() {
+    const student = students.find((s) => s.id === form.studentId);
+    if (!student) return;
+    try {
+      await api.createEvent({
+        studentId: student.id,
+        studentName: student.name,
+        title: form.title || "Aula",
+        type: form.type as EventItem["type"],
+        startsAt: new Date(form.startsAt).toISOString(),
+        endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : new Date(new Date(form.startsAt).getTime() + 3600000).toISOString(),
+        location: form.location,
+        notes: form.notes,
+      });
+      toast("Aula marcada");
+      setOpen(false);
+      await reload();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Não foi possível marcar", "error");
+    }
+  }
+
+  async function move(event: EventItem, startsAt: Date, endsAt: Date) {
+    await api.updateEvent(event.id, {
+      startsAt: startsAt.toISOString(),
+      endsAt: endsAt.toISOString(),
+      status: "rescheduled",
+    });
+    toast(`Aula de ${event.studentName} remarcada`);
+    await reload();
   }
 
   return (
     <div>
       <PageHeader
         title="Agenda"
+        description="Aulas do dia, da semana e do mês"
         action={
-          <Button size="sm" onClick={() => setOpen(true)}>
-            Novo evento
+          <Button size="sm" onClick={() => openOn(new Date())}>
+            Nova aula
           </Button>
         }
       />
       {!items ? (
-        <SkeletonList />
-      ) : items.length === 0 ? (
-        <Empty icon={Calendar} title="Nenhum evento" />
+        <Skeleton className="h-96 w-full" />
       ) : (
-        <ul className="space-y-3">
-          {items.map((e) => (
-            <li key={e.id}>
-              <Card>
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium">{e.title}</p>
-                    <p className="text-caption">
-                      {e.studentName} · {formatDate(e.startsAt)}
-                    </p>
-                    {e.location ? (
-                      <p className="text-caption">{e.location}</p>
-                    ) : null}
-                  </div>
-                  <Badge tone="default" className="capitalize">
-                    {e.type}
-                  </Badge>
-                </div>
-              </Card>
-            </li>
-          ))}
-        </ul>
+        <ClassCalendar events={items} onCreateDay={openOn} onMove={move} />
       )}
 
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="Novo evento"
+        title="Nova aula"
         footer={
           <>
             <Button variant="secondary" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={create} disabled={!form.title || !form.studentId}>
+            <Button onClick={create} disabled={!form.studentId || !form.startsAt}>
               Salvar
             </Button>
           </>
@@ -117,16 +133,6 @@ export default function AgendaPage() {
                 {s.name}
               </option>
             ))}
-          </Select>
-          <Select
-            label="Tipo"
-            value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value })}
-          >
-            <option value="workout">Treino presencial</option>
-            <option value="assessment">Avaliação</option>
-            <option value="call">Call</option>
-            <option value="other">Outro</option>
           </Select>
           <Input
             label="Título"

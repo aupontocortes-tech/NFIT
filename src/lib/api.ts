@@ -17,6 +17,7 @@ import {
   students,
   workouts,
   type Assignment,
+  type EventItem,
   type Invoice,
   type Message,
   type Student,
@@ -255,7 +256,10 @@ function defaultPersonalProfile(): PersonalProfile {
 function readMockProfile(): Partial<PersonalProfile> {
   if (typeof window === "undefined") return {};
   try {
-    return JSON.parse(localStorage.getItem(MOCK_PROFILE_KEY) ?? "{}");
+    const saved = JSON.parse(localStorage.getItem(MOCK_PROFILE_KEY) ?? "{}") as Partial<PersonalProfile>;
+    if (saved.name === "Ana Souza") delete saved.name;
+    if (saved.email === "ana@nfit.dev") delete saved.email;
+    return saved;
   } catch {
     return {};
   }
@@ -346,7 +350,7 @@ export const api = {
     if (USE_MOCK) {
       await delay();
       const isAluno =
-        email.toLowerCase().includes("aluno") || email.includes("carlos");
+        email.toLowerCase().includes("aluno");
       const user = isAluno ? currentAluno : currentPersonal;
       return storeAuth({ user, token: "mock-jwt-token" });
     }
@@ -746,7 +750,7 @@ export const api = {
               }
             : null,
           nextEvents: events.filter((e) => e.studentId === "s-001"),
-          unreadMessages: 2,
+        unreadMessages: 0,
         };
       },
     );
@@ -905,27 +909,38 @@ export const api = {
 
   // ── Events (soft) ───────────────────────────────────────────────────────
   async listEvents() {
-    return realOrMock(
-      () => request<{ items: typeof events }>("/events"),
-      async () => {
-        await delay();
-        return { items: events };
-      },
-    );
+    const res = await fetch("/api/agenda");
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new ApiError(data?.error?.message ?? "Não foi possível ler a agenda", res.status);
+    }
+    return { items: (data?.items ?? []) as EventItem[] };
   },
 
-  async createEvent(data: Partial<(typeof events)[0]>) {
-    return realOrMock(
-      () =>
-        request<(typeof events)[0]>("/events", {
-          method: "POST",
-          body: data,
-        }),
-      async () => {
-        await delay();
-        return { ...events[0], ...data, id: `e-${Date.now()}` };
-      },
-    );
+  async createEvent(data: Partial<EventItem>) {
+    const res = await fetch("/api/agenda", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new ApiError(body?.error?.message ?? "Não foi possível marcar a aula", res.status);
+    }
+    return body as EventItem;
+  },
+
+  async updateEvent(id: string, data: { startsAt: string; endsAt: string; status?: EventItem["status"] }) {
+    const res = await fetch(`/api/agenda/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new ApiError(body?.error?.message ?? "Não foi possível remarcar", res.status);
+    }
+    return body as EventItem;
   },
 
   // ── Chat (soft) ─────────────────────────────────────────────────────────

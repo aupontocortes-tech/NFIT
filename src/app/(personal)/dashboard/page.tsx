@@ -1,27 +1,23 @@
 "use client";
 
-import { Badge, Button, Card, PageHeader, Skeleton } from "@/components/ui";
+import { Button, Card, Empty, PageHeader, Skeleton } from "@/components/ui";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
-import {
-  Calendar,
-  CreditCard,
-  MessageCircle,
-  Sparkles,
-  Users,
-  Dumbbell,
-} from "lucide-react";
+import { Calendar, CreditCard, MessageCircle, Sparkles, Users, Dumbbell } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { EventItem, Student } from "@/lib/mocks";
 
 export default function DashboardPage() {
-  const [data, setData] = useState<Awaited<ReturnType<typeof api.getDashboard>> | null>(null);
+  const [students, setStudents] = useState<Student[] | null>(null);
+  const [events, setEvents] = useState<EventItem[] | null>(null);
 
   useEffect(() => {
-    api.getDashboard().then(setData);
+    api.listStudents().then((r) => setStudents(r.items)).catch(() => setStudents([]));
+    api.listEvents().then((r) => setEvents(r.items)).catch(() => setEvents([]));
   }, []);
 
-  if (!data) {
+  if (!students || !events) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-10 w-48" />
@@ -34,11 +30,28 @@ export default function DashboardPage() {
     );
   }
 
+  const now = new Date();
+  const weekStart = new Date(now);
+  const day = weekStart.getDay();
+  weekStart.setDate(weekStart.getDate() - (day === 0 ? 6 : day - 1));
+  weekStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+  const active = students.filter((s) => s.status === "active");
+  const upcoming = events
+    .filter((e) => e.status !== "cancelled" && new Date(e.startsAt) >= now)
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+    .slice(0, 5);
+  const thisWeek = events.filter((e) => {
+    const t = new Date(e.startsAt);
+    return e.status !== "cancelled" && t >= weekStart && t < weekEnd;
+  });
+
   const cards = [
-    { label: "Alunos ativos", value: data.activeStudents, href: "/alunos", icon: Users },
-    { label: "Treinos na semana", value: data.workoutsThisWeek, href: "/treinos", icon: Dumbbell },
-    { label: "Cobranças pendentes", value: data.pendingInvoices, href: "/cobrancas", icon: CreditCard },
-    { label: "Mensagens não lidas", value: data.unreadMessages, href: "/chat", icon: MessageCircle },
+    { label: "Alunos ativos", value: active.length, href: "/alunos", icon: Users },
+    { label: "Aulas na semana", value: thisWeek.length, href: "/agenda", icon: Dumbbell },
+    { label: "Cobranças pendentes", value: 0, href: "/cobrancas", icon: CreditCard },
+    { label: "Mensagens não lidas", value: 0, href: "/chat", icon: MessageCircle },
   ];
 
   return (
@@ -53,9 +66,9 @@ export default function DashboardPage() {
                 Novo aluno
               </Button>
             </Link>
-            <Link href="/treinos/novo">
+            <Link href="/agenda">
               <Button variant="secondary" size="sm">
-                Novo treino
+                Agenda
               </Button>
             </Link>
             <Link href="/treinos/gerar">
@@ -88,41 +101,48 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-subtitle">Próximos eventos</h2>
+            <h2 className="text-subtitle">Alunos</h2>
+            <Link href="/alunos" className="text-sm text-brand">
+              Ver todos
+            </Link>
+          </div>
+          {active.length === 0 ? (
+            <Empty title="Nenhum aluno cadastrado" />
+          ) : (
+            <ul className="space-y-2">
+              {active.map((s) => (
+                <li key={s.id}>
+                  <Link href={`/alunos/${s.id}`} className="block rounded-[var(--radius-md)] border border-border px-3 py-2 hover:bg-hover">
+                    <p className="font-medium">{s.name}</p>
+                    <p className="text-caption">Desde {formatDate(s.createdAt)}</p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+        <Card>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-subtitle">Próximas aulas</h2>
             <Link href="/agenda" className="text-sm text-brand">
               Ver agenda
             </Link>
           </div>
-          <ul className="space-y-3">
-            {data.upcomingEvents.map((e) => (
-              <li
-                key={e.id}
-                className="flex items-start gap-3 rounded-[var(--radius-md)] border border-border p-3"
-              >
-                <Calendar className="mt-0.5 h-4 w-4 text-brand" />
-                <div>
+          {upcoming.length === 0 ? (
+            <Empty icon={Calendar} title="Nenhuma aula marcada" />
+          ) : (
+            <ul className="space-y-3">
+              {upcoming.map((e) => (
+                <li key={e.id} className="rounded-[var(--radius-md)] border border-border p-3">
                   <p className="text-sm font-medium">{e.title}</p>
                   <p className="text-caption">
-                    {e.studentName} · {formatDate(e.startsAt)}
+                    {e.studentName} · {formatDate(e.startsAt)} ·{" "}
+                    {new Date(e.startsAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                   </p>
-                </div>
-                <Badge tone="default" className="ml-auto capitalize">
-                  {e.type}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        </Card>
-        <Card>
-          <h2 className="text-subtitle mb-3">Atividade recente</h2>
-          <ul className="space-y-3">
-            {data.recentActivity.map((a) => (
-              <li key={a.id} className="border-b border-border pb-3 last:border-0">
-                <p className="text-sm">{a.text}</p>
-                <p className="text-caption">{formatDate(a.at)}</p>
-              </li>
-            ))}
-          </ul>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </div>
     </div>

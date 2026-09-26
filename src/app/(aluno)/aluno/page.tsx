@@ -2,6 +2,7 @@
 
 import { Badge, Button, Card, Empty, PageHeader, Skeleton } from "@/components/ui";
 import { api } from "@/lib/api";
+import type { EventItem } from "@/lib/mocks";
 import { formatDate } from "@/lib/utils";
 import { Dumbbell } from "lucide-react";
 import Link from "next/link";
@@ -11,9 +12,22 @@ export default function AlunoInicioPage() {
   const [home, setHome] = useState<Awaited<
     ReturnType<typeof api.getStudentHome>
   > | null>(null);
+  const [classes, setClasses] = useState<EventItem[]>([]);
 
   useEffect(() => {
     api.getStudentHome().then(setHome);
+    Promise.all([api.listStudents(), api.listEvents()])
+      .then(([students, events]) => {
+        const id = students.items.length === 1 ? students.items[0].id : "";
+        const now = Date.now();
+        setClasses(
+          events.items
+            .filter((e) => e.status !== "cancelled" && new Date(e.startsAt).getTime() >= now)
+            .filter((e) => !id || e.studentId === id)
+            .slice(0, 4),
+        );
+      })
+      .catch(() => setClasses([]));
   }, []);
 
   if (!home) {
@@ -46,15 +60,18 @@ export default function AlunoInicioPage() {
         />
       )}
 
-      {home.nextEvents.length > 0 ? (
+      {classes.length > 0 ? (
         <div>
-          <h3 className="text-subtitle mb-3">Próximos eventos</h3>
+          <h3 className="text-subtitle mb-3">Próximas aulas</h3>
           <ul className="space-y-2">
-            {home.nextEvents.map((e) => (
+            {classes.map((e) => (
               <li key={e.id}>
                 <Card>
                   <p className="font-medium">{e.title}</p>
-                  <p className="text-caption">{formatDate(e.startsAt)}</p>
+                  <p className="text-caption">
+                    {formatDate(e.startsAt)} ·{" "}
+                    {new Date(e.startsAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                  </p>
                 </Card>
               </li>
             ))}

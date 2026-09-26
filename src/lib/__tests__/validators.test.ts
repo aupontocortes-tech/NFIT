@@ -36,7 +36,7 @@ describe("validações", () => {
       email: expect.any(String),
       phone: expect.any(String),
     });
-    expect(validateStudent({ name: "Carlos", email: "c@x.com", phone: "" })).toEqual({});
+    expect(validateStudent({ name: "Tiago", email: "c@x.com", phone: "" })).toEqual({});
   });
 
   it("cobrança", () => {
@@ -54,7 +54,7 @@ describe("validações", () => {
 
   it("cadastro", () => {
     expect(
-      validateSignup({ name: "Ana", email: "a@b.co", password: "senha12345", confirm: "x" }).confirm,
+      validateSignup({ name: "Tiago", email: "a@b.co", password: "senha12345", confirm: "x" }).confirm,
     ).toBeTruthy();
   });
 });

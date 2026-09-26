@@ -9,7 +9,7 @@ describe("PIX", () => {
   it("detecta o tipo da chave", () => {
     expect(detectPixKeyType("123.456.789-09")).toBe("cpf");
     expect(detectPixKeyType("12.345.678/0001-95")).toBe("cnpj");
-    expect(detectPixKeyType("ana@nfit.dev")).toBe("email");
+    expect(detectPixKeyType("chave@email.com")).toBe("email");
     expect(detectPixKeyType("(11) 98765-4321")).toBe("phone");
     expect(detectPixKeyType("123e4567-e89b-12d3-a456-426614174000")).toBe("random");
     expect(detectPixKeyType("abc")).toBeNull();
@@ -21,7 +21,7 @@ describe("PIX", () => {
 
   it("gera payload válido com valor, nome sem acento e CRC correto", () => {
     const p = buildPixPayload({
-      config: { key: "ana@nfit.dev", name: "Ana Souza", city: "Brasília" },
+      config: { key: "chave@email.com", name: "Tiago", city: "Brasília" },
       amount: 350,
       txid: "inv-001",
       description: "Mensalidade",

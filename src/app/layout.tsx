@@ -1,3 +1,4 @@
+import { InstallBanner } from "@/components/pwa/InstallBanner";
 import { ToastProvider } from "@/components/ui/Toast";
 import { themeBootScript } from "@/lib/theme";
 import type { Metadata, Viewport } from "next";
@@ -42,7 +43,10 @@ export default function RootLayout({
     <html lang="pt-BR" className="dark" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          {children}
+          <InstallBanner />
+        </ToastProvider>
       </body>
     </html>
   );
