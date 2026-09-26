@@ -11,10 +11,12 @@ import type { EventItem, Student } from "@/lib/mocks";
 export default function DashboardPage() {
   const [students, setStudents] = useState<Student[] | null>(null);
   const [events, setEvents] = useState<EventItem[] | null>(null);
+  const [pendingPay, setPendingPay] = useState(0);
 
   useEffect(() => {
     api.listStudents().then((r) => setStudents(r.items)).catch(() => setStudents([]));
     api.listEvents().then((r) => setEvents(r.items)).catch(() => setEvents([]));
+    api.listInvoices().then((r) => setPendingPay(r.items.filter((i) => i.status !== "paid").length)).catch(() => setPendingPay(0));
   }, []);
 
   if (!students || !events) {
@@ -50,7 +52,7 @@ export default function DashboardPage() {
   const cards = [
     { label: "Alunos ativos", value: active.length, href: "/alunos", icon: Users },
     { label: "Aulas na semana", value: thisWeek.length, href: "/agenda", icon: Dumbbell },
-    { label: "Cobranças pendentes", value: 0, href: "/cobrancas", icon: CreditCard },
+    { label: "Cobranças pendentes", value: pendingPay, href: "/cobrancas", icon: CreditCard },
     { label: "Mensagens não lidas", value: 0, href: "/chat", icon: MessageCircle },
   ];
 

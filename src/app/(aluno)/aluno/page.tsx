@@ -15,19 +15,35 @@ export default function AlunoInicioPage() {
   const [classes, setClasses] = useState<EventItem[]>([]);
 
   useEffect(() => {
-    api.getStudentHome().then(setHome);
-    Promise.all([api.listStudents(), api.listEvents()])
-      .then(([students, events]) => {
-        const id = students.items.length === 1 ? students.items[0].id : "";
-        const now = Date.now();
-        setClasses(
-          events.items
-            .filter((e) => e.status !== "cancelled" && new Date(e.startsAt).getTime() >= now)
-            .filter((e) => !id || e.studentId === id)
-            .slice(0, 4),
-        );
-      })
-      .catch(() => setClasses([]));
+    api.listStudents({ status: "active" }).then(async (r) => {
+      const saved = localStorage.getItem("nfit_aluno_id");
+      const id = r.items.find((s) => s.id === saved)?.id ?? r.items[0]?.id ?? "";
+      if (id) localStorage.setItem("nfit_aluno_id", id);
+      const assigned = id ? await api.listAssignments({ studentId: id }) : [];
+      const active = assigned.find((a) => a.status === "active") ?? null;
+      setHome({
+        todayAssignment: active
+          ? {
+              id: active.id,
+              workoutTitle: active.workoutTitle ?? "Treino",
+              startDate: active.startDate,
+              status: active.status,
+            }
+          : null,
+        nextEvents: [],
+        unreadMessages: 0,
+      });
+      const events = await api.listEvents().catch(() => ({ items: [] as EventItem[] }));
+      const now = Date.now();
+      setClasses(
+        events.items
+          .filter((e) => e.status !== "cancelled" && new Date(e.startsAt).getTime() >= now)
+          .filter((e) => !id || e.studentId === id)
+          .slice(0, 4),
+      );
+    }).catch(() =>
+      setHome({ todayAssignment: null, nextEvents: [], unreadMessages: 0 }),
+    );
   }, []);
 
   if (!home) {

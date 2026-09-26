@@ -2,6 +2,8 @@
 
 import { AppName } from "@/components/ui/AppName";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { api } from "@/lib/api";
+import type { Student } from "@/lib/mocks";
 import { cn } from "@/lib/utils";
 import {
   Calendar,
@@ -12,7 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 const nav = [
   { href: "/aluno", label: "Treino", icon: Dumbbell, exact: true, color: "#f97316" },
@@ -24,8 +26,20 @@ const nav = [
 
 export function AlunoShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [students, setStudents] = useState<Student[]>([]);
+  const [alunoId, setAlunoId] = useState("");
   const isExecution =
     /\/aluno\/treino\/[^/]+$/.test(pathname) && !pathname.includes("/resumo");
+
+  useEffect(() => {
+    api.listStudents({ status: "active" }).then((r) => {
+      setStudents(r.items);
+      const saved = localStorage.getItem("nfit_aluno_id");
+      const id = r.items.find((s) => s.id === saved)?.id ?? r.items[0]?.id ?? "";
+      if (id) localStorage.setItem("nfit_aluno_id", id);
+      setAlunoId(id);
+    }).catch(() => setStudents([]));
+  }, []);
 
   return (
     <div className="min-h-dvh bg-bg">
@@ -33,6 +47,23 @@ export function AlunoShell({ children }: { children: ReactNode }) {
         <div>
           <AppName />
           <p className="text-caption">Área do aluno</p>
+          {students.length > 1 ? (
+            <select
+              className="mt-1 h-9 rounded-[var(--radius-md)] border border-border bg-surface px-2 text-sm"
+              value={alunoId}
+              onChange={(e) => {
+                localStorage.setItem("nfit_aluno_id", e.target.value);
+                setAlunoId(e.target.value);
+                window.location.reload();
+              }}
+            >
+              {students.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
         </div>
         <ThemeToggle labeled />
       </header>

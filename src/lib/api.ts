@@ -17,6 +17,7 @@ import {
   students,
   workouts,
   type Assignment,
+  type Conversation,
   type EventItem,
   type Invoice,
   type Message,
@@ -454,30 +455,56 @@ export const api = {
   },
 
   async getPersonalProfile() {
-    return realOrMock(
-      () =>
-        request<PersonalProfile>("/personal/profile"),
-      async () => {
-        await delay();
-        return { ...defaultPersonalProfile(), ...readMockProfile() };
-      },
-    );
+    const res = await fetch("/api/perfil");
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new ApiError(data?.error?.message ?? "Não foi possível ler o perfil", res.status);
+    }
+    const local = readMockProfile();
+    if (!data.saved && local.name) {
+      return this.updatePersonalProfile({
+        name: local.name,
+        bio: local.bio,
+        studioName: local.studioName,
+        timezone: local.timezone,
+        notificationPrefs: local.notificationPrefs,
+        pix: local.pix,
+      });
+    }
+    return {
+      id: "personal",
+      name: data.name,
+      email: data.email ?? "",
+      bio: data.bio,
+      studioName: data.studioName,
+      timezone: data.timezone,
+      notificationPrefs: data.notificationPrefs,
+      pix: data.pix,
+    } satisfies PersonalProfile;
   },
 
   async updatePersonalProfile(data: PersonalProfileUpdate) {
-    return realOrMock(
-      () =>
-        request<PersonalProfile>("/personal/profile", {
-          method: "PATCH",
-          body: data,
-        }),
-      async () => {
-        await delay();
-        const next = { ...defaultPersonalProfile(), ...readMockProfile(), ...data };
-        writeMockProfile(next);
-        return next;
-      },
-    );
+    const res = await fetch("/api/perfil", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new ApiError(body?.error?.message ?? "Não foi possível salvar o perfil", res.status);
+    }
+    const profile = {
+      id: "personal",
+      name: body.name,
+      email: body.email ?? "",
+      bio: body.bio,
+      studioName: body.studioName,
+      timezone: body.timezone,
+      notificationPrefs: body.notificationPrefs,
+      pix: body.pix,
+    } satisfies PersonalProfile;
+    writeMockProfile(profile);
+    return profile;
   },
 
   // ── Students (banco Neon via /api/alunos) ──────────────────────────────
@@ -541,86 +568,42 @@ export const api = {
 
   // ── Workouts (live) ─────────────────────────────────────────────────────
   async listWorkouts(params?: { status?: string; generatedByAi?: boolean }) {
-    if (USE_MOCK) {
-      await delay();
-      let items = [...workouts];
-      if (params?.status) items = items.filter((w) => w.status === params.status);
-      if (params?.generatedByAi != null)
-        items = items.filter((w) => w.generatedByAi === params.generatedByAi);
-      return { items, page: 1, pageSize: 20, total: items.length };
-    }
-    return request<{
-      items: Workout[];
-      page: number;
-      pageSize: number;
-      total: number;
-    }>("/workouts", {
-      query: {
-        status: params?.status,
-        generatedByAi:
-          params?.generatedByAi == null ? undefined : params.generatedByAi,
-      },
-    });
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    if (params?.generatedByAi != null) qs.set("generatedByAi", String(params.generatedByAi));
+    const res = await fetch(`/api/treinos${qs.size ? `?${qs}` : ""}`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(data?.error?.message ?? "Não foi possível ler os treinos", res.status);
+    return { items: (data?.items ?? []) as Workout[], page: 1, pageSize: 50, total: data?.total ?? 0 };
   },
 
   async getWorkout(id: string) {
-    if (USE_MOCK) {
-      await delay();
-      const w =
-        workouts.find((x) => x.id === id) ??
-        (id === aiDraftFixture.id ? aiDraftFixture : null);
-      if (!w) throw new Error("Treino não encontrado");
-      return w;
-    }
-    return request<Workout>(`/workouts/${id}`);
+    const res = await fetch(`/api/treinos/${id}`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(data?.error?.message ?? "Treino não encontrado", res.status);
+    return data as Workout;
   },
 
   async createWorkout(data: Partial<Workout>) {
-    if (USE_MOCK) {
-      await delay();
-      return {
-        id: `w-${Date.now()}`,
-        title: data.title ?? "Novo treino",
-        goal: data.goal,
-        status: (data.status as Workout["status"]) ?? "draft",
-        generatedByAi: data.generatedByAi ?? false,
-        notes: data.notes,
-        warnings: data.warnings,
-        blocks: data.blocks ?? [],
-        updatedAt: new Date().toISOString(),
-        exerciseCount:
-          data.blocks?.reduce((n, b) => n + b.exercises.length, 0) ?? 0,
-      } satisfies Workout;
-    }
-    return request<Workout>("/workouts", {
+    const res = await fetch("/api/treinos", {
       method: "POST",
-      body: {
-        title: data.title,
-        goal: data.goal,
-        status: data.status ?? "draft",
-        notes: data.notes,
-        blocks: data.blocks ?? [],
-        generatedByAi: data.generatedByAi ?? false,
-      },
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
     });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(body?.error?.message ?? "Não foi possível salvar o treino", res.status);
+    return body as Workout;
   },
 
   async updateWorkout(id: string, data: Partial<Workout>) {
-    if (USE_MOCK) {
-      await delay();
-      const existing = await this.getWorkout(id);
-      return { ...existing, ...data, updatedAt: new Date().toISOString() };
-    }
-    return request<Workout>(`/workouts/${id}`, {
+    const res = await fetch(`/api/treinos/${id}`, {
       method: "PATCH",
-      body: {
-        title: data.title,
-        goal: data.goal,
-        status: data.status,
-        notes: data.notes,
-        blocks: data.blocks,
-      },
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
     });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(body?.error?.message ?? "Não foi possível salvar o treino", res.status);
+    return body as Workout;
   },
 
   // ── AI (live sync generate; never auto-publish) ─────────────────────────
@@ -677,47 +660,29 @@ export const api = {
     notes?: string;
     ackPainRisk?: boolean;
   }) {
-    if (USE_MOCK) {
-      await delay();
-      return {
-        assignments: data.studentIds.map((studentId, i) => ({
-          id: `a-new-${i}`,
-          workoutId: data.workoutId,
-          studentId,
-          status: "active" as const,
-          startDate: data.startDate,
-        })),
-      };
-    }
-    return request<{ assignments: Assignment[] }>("/workout-assignments", {
+    const res = await fetch("/api/treinos/atribuir", {
       method: "POST",
-      body: data,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
     });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(body?.error?.message ?? "Não foi possível atribuir", res.status);
+    return body as { assignments: Assignment[] };
   },
 
   async listAssignments(params?: { studentId?: string }) {
-    if (USE_MOCK) {
-      await delay();
-      let items = [...assignments];
-      if (params?.studentId)
-        items = items.filter((a) => a.studentId === params.studentId);
-      return items;
-    }
-    const res = await request<{ items: Assignment[] } | Assignment[]>(
-      "/workout-assignments",
-      { query: { studentId: params?.studentId } },
-    );
-    return Array.isArray(res) ? res : (res.items ?? []);
+    const qs = params?.studentId ? `?studentId=${encodeURIComponent(params.studentId)}` : "";
+    const res = await fetch(`/api/treinos/atribuicoes${qs}`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(data?.error?.message ?? "Não foi possível ler os treinos do aluno", res.status);
+    return (data?.items ?? []) as Assignment[];
   },
 
   async getAssignment(id: string) {
-    if (USE_MOCK) {
-      await delay();
-      const a = assignments.find((x) => x.id === id);
-      if (!a) throw new Error("Atribuição não encontrada");
-      return a;
-    }
-    return request<Assignment>(`/workout-assignments/${id}`);
+    const res = await fetch(`/api/treinos/atribuicoes/${id}`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(data?.error?.message ?? "Treino não encontrado", res.status);
+    return data as Assignment;
   },
 
   // ── Student app (soft where needed) ─────────────────────────────────────
@@ -757,8 +722,7 @@ export const api = {
   },
 
   async getStudentAssignment(id: string): Promise<Assignment> {
-    if (USE_MOCK) return this.getAssignment(id);
-    return request<Assignment>(`/student/assignments/${id}`);
+    return this.getAssignment(id);
   },
 
   async completeSession(assignmentId: string, payload: unknown) {
@@ -774,28 +738,17 @@ export const api = {
 
   /** Dados de PIX do personal, para o aluno pagar. */
   async getPaymentInfo(): Promise<{ pix: PixConfig | null }> {
-    return realOrMock(
-      () => request<{ pix: PixConfig | null }>("/student/payment-info"),
-      async () => {
-        await delay(100);
-        return { pix: readMockProfile().pix ?? null };
-      },
-    );
+    const profile = await this.getPersonalProfile();
+    return { pix: profile.pix ?? null };
   },
 
   async getStudentInvoices() {
-    return realOrMock(
-      async () => {
-        const res = await request<{ items: Invoice[] } | Invoice[]>(
-          "/student/invoices",
-        );
-        return Array.isArray(res) ? res : (res.items ?? []);
-      },
-      async () => {
-        await delay();
-        return invoices.filter((i) => i.studentId === "s-001");
-      },
-    );
+    const studentId = typeof window === "undefined" ? "" : localStorage.getItem("nfit_aluno_id") ?? "";
+    const qs = studentId ? `?studentId=${encodeURIComponent(studentId)}` : "";
+    const res = await fetch(`/api/cobrancas${qs}`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(data?.error?.message ?? "Não foi possível ler os pagamentos", res.status);
+    return (data?.items ?? []) as Invoice[];
   },
 
   async getStudentEvolution() {
@@ -945,90 +898,49 @@ export const api = {
 
   // ── Chat (soft) ─────────────────────────────────────────────────────────
   async listConversations() {
-    return realOrMock(
-      () => request<{ items: typeof conversations }>("/conversations"),
-      async () => {
-        await delay();
-        return { items: conversations };
-      },
-    );
+    const res = await fetch("/api/chat");
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(data?.error?.message ?? "Não foi possível ler as conversas", res.status);
+    return { items: (data?.items ?? []) as Conversation[] };
   },
 
   async getMessages(conversationId: string) {
-    return realOrMock(
-      () =>
-        request<{ items: (typeof messagesByConversation)[string] }>(
-          `/conversations/${conversationId}/messages`,
-        ),
-      async () => {
-        await delay(120);
-        return {
-          items: [
-            ...(messagesByConversation[conversationId] ?? []),
-            ...readMockMessages(conversationId),
-          ],
-        };
-      },
-    );
+    const res = await fetch(`/api/chat/${conversationId}`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(data?.error?.message ?? "Não foi possível ler as mensagens", res.status);
+    return { items: (data?.items ?? []) as Message[] };
   },
 
-  /** senderId só é usado no modo mock (no real, a API sabe quem enviou pelo JWT). */
   async sendMessage(conversationId: string, body: string, senderId?: string) {
-    return realOrMock(
-      () =>
-        request<{
-          id: string;
-          senderId: string;
-          body: string;
-          createdAt: string;
-        }>(`/conversations/${conversationId}/messages`, {
-          method: "POST",
-          body: { body },
-        }),
-      async () => {
-        await delay(150);
-        const m = {
-          id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          senderId: senderId ?? currentPersonal.id,
-          body,
-          createdAt: new Date().toISOString(),
-        };
-        writeMockMessage(conversationId, m);
-        return m;
-      },
-    );
+    const res = await fetch(`/api/chat/${conversationId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body, senderId }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(data?.error?.message ?? "Não foi possível enviar", res.status);
+    return data as Message;
   },
 
   // ── Invoices (soft) ─────────────────────────────────────────────────────
   async listInvoices(params?: { status?: string }) {
-    return realOrMock(
-      () =>
-        request<{
-          items: Invoice[];
-          page: number;
-          pageSize: number;
-          total: number;
-        }>("/invoices", { query: { status: params?.status } }),
-      async () => {
-        await delay();
-        let items = [...invoices];
-        if (params?.status)
-          items = items.filter((i) => i.status === params.status);
-        return { items, page: 1, pageSize: 20, total: items.length };
-      },
-    );
+    const qs = params?.status ? `?status=${encodeURIComponent(params.status)}` : "";
+    const res = await fetch(`/api/cobrancas${qs}`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(data?.error?.message ?? "Não foi possível ler as cobranças", res.status);
+    return {
+      items: (data?.items ?? []) as Invoice[],
+      page: 1,
+      pageSize: 50,
+      total: (data?.total ?? 0) as number,
+    };
   },
 
   async getInvoice(id: string): Promise<Invoice> {
-    return realOrMock(
-      () => request<Invoice>(`/invoices/${id}`),
-      async () => {
-        await delay();
-        const inv = invoices.find((i) => i.id === id);
-        if (!inv) throw new Error("Cobrança não encontrada");
-        return inv;
-      },
-    );
+    const res = await fetch(`/api/cobrancas/${id}`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(data?.error?.message ?? "Cobrança não encontrada", res.status);
+    return data as Invoice;
   },
 
   async createInvoice(data: {
@@ -1037,47 +949,21 @@ export const api = {
     amount: number;
     dueDate: string;
   }) {
-    return realOrMock(
-      () =>
-        request<Invoice>("/invoices", {
-          method: "POST",
-          body: {
-            studentId: data.studentId,
-            description: data.description,
-            amount: data.amount,
-            currency: "BRL",
-            dueDate: data.dueDate,
-          },
-        }),
-      async () => {
-        await delay();
-        const st = students.find((s) => s.id === data.studentId);
-        return {
-          id: `i-${Date.now()}`,
-          studentId: data.studentId,
-          studentName: st?.name ?? "",
-          description: data.description,
-          amount: { amount: data.amount, currency: "BRL" as const },
-          dueDate: data.dueDate,
-          status: "pending" as const,
-        };
-      },
-    );
+    const res = await fetch("/api/cobrancas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(body?.error?.message ?? "Não foi possível criar a cobrança", res.status);
+    return body as Invoice;
   },
 
   async markInvoicePaid(id: string) {
-    return realOrMock(
-      () => request<Invoice>(`/invoices/${id}/mark-paid`, { method: "POST" }),
-      async () => {
-        await delay();
-        const inv = await this.getInvoice(id);
-        return {
-          ...inv,
-          status: "paid" as const,
-          paidAt: new Date().toISOString(),
-        };
-      },
-    );
+    const res = await fetch(`/api/cobrancas/${id}`, { method: "POST" });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(data?.error?.message ?? "Não foi possível marcar como paga", res.status);
+    return data as Invoice;
   },
 
   // ── Assessments (soft) ──────────────────────────────────────────────────
