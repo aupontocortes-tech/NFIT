@@ -123,12 +123,24 @@ export interface Assessment {
   date: string;
   weightKg?: number;
   bodyFatPercent?: number;
+  heightCm?: number;
+  age?: number;
+  sex?: "f" | "m";
+  bmi?: number;
+  bmiLabel?: string;
+  whr?: number;
+  whrLabel?: string;
+  girthSumCm?: number;
+  leanMassKg?: number;
   measurements: {
     waist?: number;
     chest?: number;
     hip?: number;
     arm?: number;
     thigh?: number;
+    biceps?: number;
+    forearm?: number;
+    abdomen?: number;
   };
   notes?: string;
   photoUrls: string[];

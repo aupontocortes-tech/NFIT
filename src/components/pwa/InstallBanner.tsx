@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const HIDE_KEY = "nfit_install_hidden";
@@ -47,6 +48,8 @@ function installed() {
 }
 
 export function InstallBanner() {
+  const pathname = usePathname();
+  const onCheckin = pathname.startsWith("/avaliacao/");
   const [kind, setKind] = useState<Kind | null>(null);
   const [promptEvent, setPromptEvent] = useState<BeforeInstall | null>(null);
   const [hidden, setHidden] = useState(true);
@@ -86,8 +89,14 @@ export function InstallBanner() {
     setHidden(true);
   }
 
-  const title =
-    kind === "desktop" ? "Baixar o NFIT no computador" : "Baixar o NFIT no celular";
+  const title = onCheckin
+    ? "Baixar a avaliação no celular"
+    : kind === "desktop"
+      ? "Baixar o NFIT no computador"
+      : "Baixar o NFIT no celular";
+  const hint = onCheckin
+    ? "O ícone vermelho fica na tela do celular e abre esta página para enviar as fotos."
+    : "O ícone vermelho entra na tela e o NFIT abre como aplicativo.";
 
   return (
     <aside className="fixed inset-x-3 bottom-24 z-40 mx-auto max-w-md rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-lg md:inset-x-auto md:bottom-6 md:right-6">
@@ -95,7 +104,7 @@ export function InstallBanner() {
         <img src="/icons/icon-192.png" alt="" width={48} height={48} className="rounded-[22%]" />
         <div>
           <p className="font-semibold">{title}</p>
-          <p className="text-caption">O ícone vermelho entra na tela e o NFIT abre como aplicativo.</p>
+          <p className="text-caption">{hint}</p>
         </div>
       </div>
       <ol className="mb-4 list-decimal space-y-1 pl-5 text-sm">

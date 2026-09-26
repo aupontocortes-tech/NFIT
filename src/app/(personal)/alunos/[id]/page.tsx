@@ -206,9 +206,10 @@ export default function AlunoDetalhePage() {
                 <Card>
                   <p className="font-medium">{assessmentDate(a.date)}</p>
                   <p className="text-caption tabular-nums">
-                    Peso: {a.weightKg ?? "—"} kg
-                    {a.measurements.waist != null ? ` · Cintura: ${a.measurements.waist} cm` : ""}
-                    {a.measurements.hip != null ? ` · Quadril: ${a.measurements.hip} cm` : ""}
+                    {a.bmi != null ? `IMC ${a.bmi.toLocaleString("pt-BR")} ${a.bmiLabel ?? ""}` : `Peso: ${a.weightKg ?? "—"} kg`}
+                    {a.whr != null ? ` · RCQ ${a.whr.toLocaleString("pt-BR")} ${a.whrLabel ?? ""}` : ""}
+                    {a.bodyFatPercent != null ? ` · Gordura ${a.bodyFatPercent.toLocaleString("pt-BR")}%` : ""}
+                    {a.leanMassKg != null ? ` · Massa magra ${a.leanMassKg.toLocaleString("pt-BR")} kg` : ""}
                   </p>
                   {a.notes ? <p className="mt-1 text-sm">{a.notes}</p> : null}
                   {a.photoUrls.length > 0 ? (

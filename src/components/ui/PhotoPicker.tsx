@@ -3,7 +3,7 @@
 import { api } from "@/lib/api";
 import { validateImage } from "@/lib/images";
 import { cn } from "@/lib/utils";
-import { Camera, Loader2, X } from "lucide-react";
+import { Camera, ImagePlus, Loader2, X } from "lucide-react";
 import { useRef, useState } from "react";
 
 /**
@@ -16,6 +16,8 @@ export function PhotoPicker({
   onRemove,
   max = 6,
   label = "Adicionar foto",
+  showFileHint = true,
+  chooseSource = false,
   className,
 }: {
   photos: string[];
@@ -23,9 +25,13 @@ export function PhotoPicker({
   onRemove?: (url: string) => void | Promise<void>;
   max?: number;
   label?: string;
+  showFileHint?: boolean;
+  /** No celular: tirar na hora ou escolher da galeria. */
+  chooseSource?: boolean;
   className?: string;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(0);
   const [error, setError] = useState("");
 
@@ -48,7 +54,8 @@ export function PhotoPicker({
         setUploading((n) => n - 1);
       }
     }
-    if (inputRef.current) inputRef.current.value = "";
+    if (galleryRef.current) galleryRef.current.value = "";
+    if (cameraRef.current) cameraRef.current.value = "";
   }
 
   const full = photos.length >= max;
@@ -77,10 +84,30 @@ export function PhotoPicker({
             <Loader2 className="h-5 w-5 animate-spin text-text-muted" />
           </div>
         ))}
-        {!full ? (
+        {!full && chooseSource ? (
+          <div className="col-span-3 flex flex-wrap gap-2 sm:col-span-4">
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              className="inline-flex h-11 items-center gap-2 rounded-[var(--radius-md)] border border-border px-3 text-sm font-semibold"
+            >
+              <Camera className="h-5 w-5" />
+              Tirar foto
+            </button>
+            <button
+              type="button"
+              onClick={() => galleryRef.current?.click()}
+              className="inline-flex h-11 items-center gap-2 rounded-[var(--radius-md)] border border-border px-3 text-sm font-semibold"
+            >
+              <ImagePlus className="h-5 w-5" />
+              Galeria
+            </button>
+          </div>
+        ) : null}
+        {!full && !chooseSource ? (
           <button
             type="button"
-            onClick={() => inputRef.current?.click()}
+            onClick={() => galleryRef.current?.click()}
             className={cn(
               "flex aspect-square flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] border border-dashed border-border text-xs text-text-muted transition hover:border-brand hover:text-brand",
             )}
@@ -90,17 +117,13 @@ export function PhotoPicker({
           </button>
         ) : null}
       </div>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        hidden
-        onChange={(e) => onFiles(e.target.files)}
-      />
-      <p className="mt-2 text-caption">
-        {photos.length}/{max} fotos · JPG, PNG ou HEIC até 10 MB
-      </p>
+      <input ref={galleryRef} type="file" accept="image/*" multiple={!chooseSource} hidden onChange={(e) => onFiles(e.target.files)} />
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => onFiles(e.target.files)} />
+      {showFileHint ? (
+        <p className="mt-2 text-caption">
+          {photos.length}/{max} fotos · JPG, PNG ou HEIC até 10 MB
+        </p>
+      ) : null}
       {error ? <p className="mt-1 text-xs text-error">{error}</p> : null}
     </div>
   );

@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import type { Assessment } from "@/lib/mocks";
+import { bodyMetrics, type BodyInput, type Sex } from "@/lib/body-metrics";
 
 function db() {
   const url = process.env.DATABASE_URL;
@@ -27,9 +28,11 @@ function ensureTables() {
         hip_cm double precision,
         notes text,
         photo_urls text NOT NULL DEFAULT '[]',
+        details text,
         created_at timestamptz NOT NULL DEFAULT now()
       )
     `;
+    await sql`ALTER TABLE nfit_checkins ADD COLUMN IF NOT EXISTS details text`;
   })();
   return ready;
 }
@@ -69,11 +72,12 @@ export async function saveCheckin(input: {
   hipCm?: number;
   notes?: string;
   photoUrls: string[];
+  details?: BodyInput;
 }) {
   await ensureTables();
   const id = crypto.randomUUID();
   await db()`
-    INSERT INTO nfit_checkins (id, student_id, weight_kg, waist_cm, hip_cm, notes, photo_urls)
+    INSERT INTO nfit_checkins (id, student_id, weight_kg, waist_cm, hip_cm, notes, photo_urls, details)
     VALUES (
       ${id},
       ${input.studentId},
@@ -81,7 +85,8 @@ export async function saveCheckin(input: {
       ${input.waistCm ?? null},
       ${input.hipCm ?? null},
       ${input.notes || null},
-      ${JSON.stringify(input.photoUrls)}
+      ${JSON.stringify(input.photoUrls)},
+      ${input.details ? JSON.stringify(input.details) : null}
     )
   `;
   return id;
@@ -90,7 +95,7 @@ export async function saveCheckin(input: {
 export async function listCheckins(studentId: string): Promise<Assessment[]> {
   await ensureTables();
   const rows = await db()`
-    SELECT id, weight_kg, waist_cm, hip_cm, notes, photo_urls, created_at
+    SELECT id, weight_kg, waist_cm, hip_cm, notes, photo_urls, details, created_at
     FROM nfit_checkins
     WHERE student_id = ${studentId}
     ORDER BY created_at DESC
@@ -106,13 +111,38 @@ export async function listCheckins(studentId: string): Promise<Assessment[]> {
       row.created_at instanceof Date
         ? row.created_at.toISOString()
         : new Date(String(row.created_at)).toISOString();
+    let details: Partial<BodyInput> | null = null;
+    try {
+      details = row.details ? (JSON.parse(String(row.details)) as BodyInput) : null;
+    } catch {
+      details = null;
+    }
+    const metrics =
+      details?.sex && details.age && details.heightCm && details.weightKg && details.waistCm && details.hipCm && details.abdomenCm
+        ? bodyMetrics(details as BodyInput)
+        : null;
     return {
       id: String(row.id),
       date: created.slice(0, 10),
       weightKg: num(row.weight_kg),
+      heightCm: details?.heightCm,
+      age: details?.age,
+      sex: details?.sex as Sex | undefined,
+      bmi: metrics?.bmi,
+      bmiLabel: metrics?.bmiLabel,
+      whr: metrics?.whr,
+      whrLabel: metrics?.whrLabel,
+      girthSumCm: metrics?.girthSumCm,
+      bodyFatPercent: metrics?.bodyFatPercent,
+      leanMassKg: metrics?.leanMassKg,
       measurements: {
         waist: num(row.waist_cm),
         hip: num(row.hip_cm),
+        chest: details?.chestCm,
+        biceps: details?.bicepsCm,
+        forearm: details?.forearmCm,
+        abdomen: details?.abdomenCm,
+        thigh: details?.thighCm,
       },
       notes: row.notes ? String(row.notes) : undefined,
       photoUrls: photos,
