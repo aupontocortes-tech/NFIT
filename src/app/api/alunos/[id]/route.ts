@@ -22,7 +22,7 @@ export async function GET(_request: Request, ctx: Ctx) {
 
 export async function PATCH(request: Request, ctx: Ctx) {
   const { id } = await ctx.params;
-  let body: Partial<{ name: string; phone: string; notes: string; status: StudentStatus }>;
+  let body: Partial<{ name: string; phone: string; notes: string; status: StudentStatus; avatarUrl: string | null }>;
   try {
     body = await request.json();
   } catch {

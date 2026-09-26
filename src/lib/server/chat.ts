@@ -43,7 +43,7 @@ export async function listConversations(): Promise<Conversation[]> {
       const row = byStudent.get(s.id);
       return {
         id: s.id,
-        peer: { id: s.id, name: s.name },
+        peer: { id: s.id, name: s.name, avatarUrl: s.avatarUrl },
         lastMessage: row ? String(row.body) : "Nenhuma mensagem ainda",
         unreadCount: 0,
         updatedAt: row ? iso(row.created_at) : s.createdAt,

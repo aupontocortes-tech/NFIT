@@ -7,8 +7,9 @@ import { Camera, ImagePlus, Loader2, X } from "lucide-react";
 import { useRef, useState } from "react";
 
 /**
- * Seleciona fotos (galeria ou câmera no celular), comprime e envia.
- * Chama onUploaded com a URL de cada foto enviada.
+ * No celular, Tirar foto abre a câmera do aparelho.
+ * Depois de usar ou tirar outra, a pessoa volta para o app.
+ * Escolher arquivo abre a galeria ou os arquivos do computador.
  */
 export function PhotoPicker({
   photos,
@@ -26,7 +27,6 @@ export function PhotoPicker({
   max?: number;
   label?: string;
   showFileHint?: boolean;
-  /** No celular: tirar na hora ou escolher da galeria. */
   chooseSource?: boolean;
   className?: string;
 }) {
@@ -35,10 +35,10 @@ export function PhotoPicker({
   const [uploading, setUploading] = useState(0);
   const [error, setError] = useState("");
 
-  async function onFiles(list: FileList | null) {
+  async function accept(files: File[]) {
     setError("");
-    const files = Array.from(list ?? []).slice(0, Math.max(0, max - photos.length));
-    for (const file of files) {
+    const chosen = files.slice(0, Math.max(0, max - photos.length));
+    for (const file of chosen) {
       const invalid = validateImage(file);
       if (invalid) {
         setError(invalid);
@@ -61,12 +61,11 @@ export function PhotoPicker({
   const full = photos.length >= max;
 
   return (
-    <div className={className}>
+    <div className={cn("relative", className)}>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {photos.map((url) => (
           <div key={url} className="relative aspect-square overflow-hidden rounded-[var(--radius-md)] border border-border bg-fill">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url} alt="Foto de evolução" className="h-full w-full object-cover" />
+            <img src={url} alt="Foto enviada" className="h-full w-full object-cover" />
             {onRemove ? (
               <button
                 type="button"
@@ -100,7 +99,7 @@ export function PhotoPicker({
               className="inline-flex h-11 items-center gap-2 rounded-[var(--radius-md)] border border-border px-3 text-sm font-semibold"
             >
               <ImagePlus className="h-5 w-5" />
-              Galeria
+              Escolher arquivo
             </button>
           </div>
         ) : null}
@@ -117,8 +116,22 @@ export function PhotoPicker({
           </button>
         ) : null}
       </div>
-      <input ref={galleryRef} type="file" accept="image/*" multiple={!chooseSource} hidden onChange={(e) => onFiles(e.target.files)} />
-      <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => onFiles(e.target.files)} />
+      <input
+        ref={galleryRef}
+        type="file"
+        accept="image/*"
+        multiple={!chooseSource}
+        className="absolute h-px w-px opacity-0"
+        onChange={(e) => accept(Array.from(e.target.files ?? []))}
+      />
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="absolute h-px w-px opacity-0"
+        onChange={(e) => accept(Array.from(e.target.files ?? []))}
+      />
       {showFileHint ? (
         <p className="mt-2 text-caption">
           {photos.length}/{max} fotos · JPG, PNG ou HEIC até 10 MB

@@ -1,17 +1,44 @@
 "use client";
 
-import { Avatar, Button, Card, Input, PageHeader } from "@/components/ui";
+import { Avatar, Button, Card, PageHeader } from "@/components/ui";
+import { PhotoPicker } from "@/components/ui/PhotoPicker";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
+import type { Student } from "@/lib/mocks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function AlunoPerfilPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [name, setName] = useState("");
-  const [email] = useState("");
+  const [student, setStudent] = useState<Student | null>(null);
+  const [photo, setPhoto] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const id = localStorage.getItem("nfit_aluno_id");
+    if (!id) return;
+    api.getStudent(id).then((s) => {
+      setStudent(s);
+      setPhoto(s.avatarUrl ? [s.avatarUrl] : []);
+    }).catch(() => setStudent(null));
+  }, []);
+
+  async function save() {
+    if (!student) return;
+    setSaving(true);
+    try {
+      const updated = await api.patchStudent(student.id, { avatarUrl: photo[0] ?? null });
+      setStudent(updated);
+      toast("Foto salva");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Não foi possível salvar a foto", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function logout() {
     await api.logout();
@@ -21,18 +48,27 @@ export default function AlunoPerfilPage() {
 
   return (
     <div>
-      <PageHeader title="Perfil" />
+      <PageHeader title="Perfil" description={student?.name} />
       <div className="mb-6 flex justify-center">
-        <Avatar name={name} size="lg" />
+        <Avatar name={student?.name ?? ""} src={photo[0]} size="lg" />
       </div>
       <Card className="mb-4 space-y-4">
-        <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} />
-        <Input label="E-mail" value={email} disabled />
-        <Button
-          onClick={() => toast("Perfil atualizado")}
-        >
-          Salvar
+        <p className="text-sm text-text-muted">A foto é opcional. Pode tirar agora ou escolher uma que já tem.</p>
+        <PhotoPicker
+          photos={photo}
+          max={1}
+          chooseSource
+          showFileHint={false}
+          onUploaded={(url) => setPhoto([url])}
+          onRemove={() => setPhoto([])}
+        />
+        <Button onClick={save} loading={saving} disabled={!student}>
+          Salvar foto
         </Button>
+      </Card>
+      <Card className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold">Aparência</p>
+        <ThemeToggle labeled />
       </Card>
       <Card className="space-y-3">
         <Link href="/aluno/pagamentos" className="block text-sm text-brand">

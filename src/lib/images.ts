@@ -4,7 +4,9 @@ export const MAX_UPLOAD_MB = 10;
 export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 
 export function validateImage(file: File): string | null {
-  if (!file.type.startsWith("image/")) return "Envie apenas imagens.";
+  const name = file.name.toLowerCase();
+  const looksImage = file.type.startsWith("image/") || /\.(jpe?g|png|webp|heic|heif|bmp|gif)$/.test(name);
+  if (!looksImage) return "Escolha uma foto.";
   if (file.size > MAX_UPLOAD_MB * 1024 * 1024) return `Imagem acima de ${MAX_UPLOAD_MB} MB.`;
   return null;
 }

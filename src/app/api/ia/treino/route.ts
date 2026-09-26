@@ -42,7 +42,8 @@ export async function POST(request: Request) {
     equipment: body.equipment ? String(body.equipment).slice(0, 120) : undefined,
     constraints: body.constraints ? String(body.constraints).slice(0, 300) : undefined,
     prompt: body.prompt ? String(body.prompt).slice(0, 500) : undefined,
-    studentName: body.studentName ? String(body.studentName).slice(0, 60) : undefined,
+    studentName: body.studentName ? String(body.studentName).slice(0, 80) : undefined,
+    assessment: body.assessment ? String(body.assessment).slice(0, 2000) : undefined,
   };
 
   try {

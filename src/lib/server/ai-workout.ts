@@ -18,6 +18,8 @@ export type WorkoutInput = {
   equipment?: string;
   prompt?: string;
   studentName?: string;
+  /** Medidas da última avaliação enviada pela cliente. Ausente se o treino for sem avaliação. */
+  assessment?: string;
 };
 
 export type AiExercise = {
@@ -87,6 +89,7 @@ function userPrompt(i: WorkoutInput) {
 - Equipamentos: ${i.equipment || "não informado"}
 - Limitações/lesões: ${i.constraints || "não informado"}
 ${i.studentName ? `- Aluno: ${i.studentName}` : ""}
+${i.assessment ? `- Avaliação física enviada pela cliente (use estes números para individualizar volume, carga e cuidados):\n${i.assessment}` : "- Avaliação física: ainda não enviada. Monte um rascunho mais conservador e avise que falta a avaliação."}
 ${i.prompt ? `- Pedido extra do personal: ${i.prompt}` : ""}
 
 Responda SOMENTE com JSON válido, sem texto extra.

@@ -298,14 +298,13 @@ async function generateWithLocalAi(input: {
   constraints?: string;
   equipment?: string;
   prompt?: string;
+  studentName?: string;
+  assessment?: string;
 }): Promise<AiDraftResponse> {
-  const studentName = input.studentId
-    ? students.find((s) => s.id === input.studentId)?.name
-    : undefined;
   const res = await fetch("/api/ia/treino", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...input, studentName }),
+    body: JSON.stringify(input),
   });
   const requestId = `req-${Date.now()}`;
   if (res.status === 501) {
@@ -557,6 +556,7 @@ export const api = {
         phone: data.phone,
         notes: data.notes,
         status: data.status,
+        avatarUrl: data.avatarUrl,
       }),
     });
     const body = await res.json().catch(() => null);
@@ -616,6 +616,8 @@ export const api = {
     constraints?: string;
     equipment?: string;
     prompt?: string;
+    studentName?: string;
+    assessment?: string;
   }) {
     try {
       sessionStorage.setItem(AI_LAST_INPUT_KEY, JSON.stringify(input));
