@@ -31,6 +31,7 @@ export default function AvaliacaoClientePage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [missing, setMissing] = useState(false);
   const [sent, setSent] = useState(false);
+  const [justRegistered, setJustRegistered] = useState(false);
   const [loading, setLoading] = useState(false);
   const [front, setFront] = useState<string[]>([]);
   const [sideRight, setSideRight] = useState<string[]>([]);
@@ -42,18 +43,25 @@ export default function AvaliacaoClientePage() {
     heightCm: "",
     weightKg: "",
     chest: "",
-    biceps: "",
-    forearm: "",
+    bicepsRight: "",
+    bicepsLeft: "",
+    forearmRight: "",
+    forearmLeft: "",
     waist: "",
     abdomen: "",
     hip: "",
-    thigh: "",
+    thighRight: "",
+    thighLeft: "",
     notes: "",
   });
 
   function num(value: string) {
     const n = Number(value.replace(",", "."));
     return Number.isFinite(n) ? n : Number.NaN;
+  }
+
+  function avg(right: string, left: string) {
+    return (num(right) + num(left)) / 2;
   }
 
   const result = useMemo(() => {
@@ -63,12 +71,18 @@ export default function AvaliacaoClientePage() {
       heightCm: num(form.heightCm),
       weightKg: num(form.weightKg),
       chestCm: num(form.chest),
-      bicepsCm: num(form.biceps),
-      forearmCm: num(form.forearm),
+      bicepsCm: avg(form.bicepsRight, form.bicepsLeft),
+      bicepsRightCm: num(form.bicepsRight),
+      bicepsLeftCm: num(form.bicepsLeft),
+      forearmCm: avg(form.forearmRight, form.forearmLeft),
+      forearmRightCm: num(form.forearmRight),
+      forearmLeftCm: num(form.forearmLeft),
       waistCm: num(form.waist),
       abdomenCm: num(form.abdomen),
       hipCm: num(form.hip),
-      thighCm: num(form.thigh),
+      thighCm: avg(form.thighRight, form.thighLeft),
+      thighRightCm: num(form.thighRight),
+      thighLeftCm: num(form.thighLeft),
     };
     if (Object.values(input).some((v) => typeof v === "number" && Number.isNaN(v))) return null;
     if (input.heightCm < 100 || input.weightKg <= 0 || input.waistCm <= 0 || input.hipCm <= 0) return null;
@@ -84,6 +98,10 @@ export default function AvaliacaoClientePage() {
     });
     if (!res.ok) toast("Não foi possível salvar a foto", "error");
   }
+
+  useEffect(() => {
+    setJustRegistered(new URLSearchParams(window.location.search).get("novo") === "1");
+  }, []);
 
   useEffect(() => {
     const href = `/avaliacao/${token}/manifesto`;
@@ -125,12 +143,18 @@ export default function AvaliacaoClientePage() {
           heightCm: num(form.heightCm),
           weightKg: num(form.weightKg),
           chestCm: num(form.chest),
-          bicepsCm: num(form.biceps),
-          forearmCm: num(form.forearm),
+          bicepsCm: avg(form.bicepsRight, form.bicepsLeft),
+          bicepsRightCm: num(form.bicepsRight),
+          bicepsLeftCm: num(form.bicepsLeft),
+          forearmCm: avg(form.forearmRight, form.forearmLeft),
+          forearmRightCm: num(form.forearmRight),
+          forearmLeftCm: num(form.forearmLeft),
           waistCm: num(form.waist),
           abdomenCm: num(form.abdomen),
           hipCm: num(form.hip),
-          thighCm: num(form.thigh),
+          thighCm: avg(form.thighRight, form.thighLeft),
+          thighRightCm: num(form.thighRight),
+          thighLeftCm: num(form.thighLeft),
           notes: form.notes,
           photoUrls: photos,
         }),
@@ -173,6 +197,12 @@ export default function AvaliacaoClientePage() {
         </Card>
       ) : (
         <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-4">
+          {justRegistered ? (
+            <Card>
+              <p className="font-semibold">Cadastro salvo.</p>
+              <p className="mt-1 text-sm text-text-muted">Agora preencha a avaliação. A sua personal já vê você na lista.</p>
+            </Card>
+          ) : null}
           <Card className="space-y-3">
             <p className="text-base font-semibold">Sua foto</p>
             <p className="text-sm text-text-muted">Opcional. Pode tirar agora ou escolher uma que já tem.</p>
@@ -202,12 +232,30 @@ export default function AvaliacaoClientePage() {
             <Input label="Peso (kg)" inputMode="decimal" value={form.weightKg} onChange={(e) => setForm({ ...form, weightKg: e.target.value })} required />
             <p className="text-base font-semibold">Medidas do corpo, em centímetros</p>
             <Input label="Peito" inputMode="decimal" value={form.chest} onChange={(e) => setForm({ ...form, chest: e.target.value })} required />
-            <Input label="Braço" inputMode="decimal" value={form.biceps} onChange={(e) => setForm({ ...form, biceps: e.target.value })} required />
-            <Input label="Antebraço" inputMode="decimal" value={form.forearm} onChange={(e) => setForm({ ...form, forearm: e.target.value })} required />
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">Braço</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Direito" inputMode="decimal" value={form.bicepsRight} onChange={(e) => setForm({ ...form, bicepsRight: e.target.value })} required />
+                <Input label="Esquerdo" inputMode="decimal" value={form.bicepsLeft} onChange={(e) => setForm({ ...form, bicepsLeft: e.target.value })} required />
+              </div>
+            </div>
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">Antebraço</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Direito" inputMode="decimal" value={form.forearmRight} onChange={(e) => setForm({ ...form, forearmRight: e.target.value })} required />
+                <Input label="Esquerdo" inputMode="decimal" value={form.forearmLeft} onChange={(e) => setForm({ ...form, forearmLeft: e.target.value })} required />
+              </div>
+            </div>
             <Input label="Cintura" inputMode="decimal" value={form.waist} onChange={(e) => setForm({ ...form, waist: e.target.value })} required />
             <Input label="Barriga" inputMode="decimal" value={form.abdomen} onChange={(e) => setForm({ ...form, abdomen: e.target.value })} required />
             <Input label="Quadril" inputMode="decimal" value={form.hip} onChange={(e) => setForm({ ...form, hip: e.target.value })} required />
-            <Input label="Coxa" inputMode="decimal" value={form.thigh} onChange={(e) => setForm({ ...form, thigh: e.target.value })} required />
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">Coxa</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Direita" inputMode="decimal" value={form.thighRight} onChange={(e) => setForm({ ...form, thighRight: e.target.value })} required />
+                <Input label="Esquerda" inputMode="decimal" value={form.thighLeft} onChange={(e) => setForm({ ...form, thighLeft: e.target.value })} required />
+              </div>
+            </div>
             <Textarea label="Como você está se sentindo" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </Card>
           {result ? (

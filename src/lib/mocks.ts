@@ -139,7 +139,13 @@ export interface Assessment {
     arm?: number;
     thigh?: number;
     biceps?: number;
+    bicepsRight?: number;
+    bicepsLeft?: number;
     forearm?: number;
+    forearmRight?: number;
+    forearmLeft?: number;
+    thighRight?: number;
+    thighLeft?: number;
     abdomen?: number;
   };
   notes?: string;

@@ -183,11 +183,11 @@ export default function AlunoDetalhePage() {
                 return;
               }
               await navigator.clipboard.writeText(data.url);
-              toast("Link copiado. Envie para a cliente.");
+              toast("Link da avaliação copiado. O aluno já precisa estar cadastrado.");
             }}
           >
             <Link2 className="h-4 w-4" />
-            Copiar link da cliente
+            Copiar link da avaliação
           </Button>
           <Link href={`/alunos/${id}/avaliacoes/nova`}>
             <Button size="sm" variant="secondary">
@@ -195,6 +195,9 @@ export default function AlunoDetalhePage() {
             </Button>
           </Link>
         </div>
+        <p className="mb-3 text-caption">
+          Este link é de quem já está cadastrado. O link de cadastro fica na lista de alunos.
+        </p>
         {assessments.length === 0 ? (
           <Empty title="Nenhuma avaliação enviada" description="Copie o link e mande para a cliente preencher." />
         ) : (
@@ -212,6 +215,28 @@ export default function AlunoDetalhePage() {
                     {a.leanMassKg != null ? ` · Massa magra ${a.leanMassKg.toLocaleString("pt-BR")} kg` : ""}
                   </p>
                   {a.notes ? <p className="mt-1 text-sm">{a.notes}</p> : null}
+                  {a.measurements.bicepsRight != null ||
+                  a.measurements.bicepsLeft != null ||
+                  a.measurements.forearmRight != null ||
+                  a.measurements.forearmLeft != null ||
+                  a.measurements.thighRight != null ||
+                  a.measurements.thighLeft != null ? (
+                    <p className="mt-2 text-caption tabular-nums">
+                      {[
+                        a.measurements.bicepsRight != null || a.measurements.bicepsLeft != null
+                          ? `Braço D ${a.measurements.bicepsRight ?? "—"} · E ${a.measurements.bicepsLeft ?? "—"} cm`
+                          : null,
+                        a.measurements.forearmRight != null || a.measurements.forearmLeft != null
+                          ? `Antebraço D ${a.measurements.forearmRight ?? "—"} · E ${a.measurements.forearmLeft ?? "—"} cm`
+                          : null,
+                        a.measurements.thighRight != null || a.measurements.thighLeft != null
+                          ? `Coxa D ${a.measurements.thighRight ?? "—"} · E ${a.measurements.thighLeft ?? "—"} cm`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  ) : null}
                   {a.photoUrls.length > 0 ? (
                     <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                       {a.photoUrls.map((url) => (

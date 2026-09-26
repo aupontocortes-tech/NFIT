@@ -41,12 +41,18 @@ export async function POST(request: Request, ctx: Ctx) {
     heightCm: Number(body.heightCm),
     weightKg: Number(body.weightKg),
     chestCm: Number(body.chestCm),
-    bicepsCm: Number(body.bicepsCm),
-    forearmCm: Number(body.forearmCm),
+    bicepsRightCm: Number(body.bicepsRightCm),
+    bicepsLeftCm: Number(body.bicepsLeftCm),
+    bicepsCm: (Number(body.bicepsRightCm) + Number(body.bicepsLeftCm)) / 2,
+    forearmRightCm: Number(body.forearmRightCm),
+    forearmLeftCm: Number(body.forearmLeftCm),
+    forearmCm: (Number(body.forearmRightCm) + Number(body.forearmLeftCm)) / 2,
     waistCm: Number(body.waistCm),
     abdomenCm: Number(body.abdomenCm),
     hipCm: Number(body.hipCm),
-    thighCm: Number(body.thighCm),
+    thighRightCm: Number(body.thighRightCm),
+    thighLeftCm: Number(body.thighLeftCm),
+    thighCm: (Number(body.thighRightCm) + Number(body.thighLeftCm)) / 2,
   };
   const photos = Array.isArray(body.photoUrls) ? body.photoUrls.filter((u) => typeof u === "string") : [];
   const invalid = Object.values(details).some((v) => typeof v === "number" && !Number.isFinite(v));

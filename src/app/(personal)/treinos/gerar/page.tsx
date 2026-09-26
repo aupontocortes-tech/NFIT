@@ -66,12 +66,24 @@ export default function GerarIaPage() {
       item.bodyFatPercent ? `Gordura estimada: ${item.bodyFatPercent}%` : "",
       item.leanMassKg ? `Massa magra: ${item.leanMassKg} kg` : "",
       m.chest ? `Peito: ${m.chest} cm` : "",
-      m.biceps ? `Braço: ${m.biceps} cm` : "",
-      m.forearm ? `Antebraço: ${m.forearm} cm` : "",
+      m.bicepsRight || m.bicepsLeft
+        ? `Braço direito: ${m.bicepsRight ?? "—"} cm; braço esquerdo: ${m.bicepsLeft ?? "—"} cm`
+        : m.biceps
+          ? `Braço: ${m.biceps} cm`
+          : "",
+      m.forearmRight || m.forearmLeft
+        ? `Antebraço direito: ${m.forearmRight ?? "—"} cm; antebraço esquerdo: ${m.forearmLeft ?? "—"} cm`
+        : m.forearm
+          ? `Antebraço: ${m.forearm} cm`
+          : "",
       m.waist ? `Cintura: ${m.waist} cm` : "",
       m.abdomen ? `Barriga: ${m.abdomen} cm` : "",
       m.hip ? `Quadril: ${m.hip} cm` : "",
-      m.thigh ? `Coxa: ${m.thigh} cm` : "",
+      m.thighRight || m.thighLeft
+        ? `Coxa direita: ${m.thighRight ?? "—"} cm; coxa esquerda: ${m.thighLeft ?? "—"} cm`
+        : m.thigh
+          ? `Coxa: ${m.thigh} cm`
+          : "",
       item.notes ? `Como se sente: ${item.notes}` : "",
     ]
       .filter(Boolean)

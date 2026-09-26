@@ -12,6 +12,12 @@ export type BodyInput = {
   abdomenCm: number;
   hipCm: number;
   thighCm: number;
+  bicepsRightCm?: number;
+  bicepsLeftCm?: number;
+  forearmRightCm?: number;
+  forearmLeftCm?: number;
+  thighRightCm?: number;
+  thighLeftCm?: number;
 };
 
 export type BodyResult = {
@@ -70,18 +76,26 @@ function siri(density: number) {
   return 495 / density - 450;
 }
 
+/** Direito e esquerdo entram pela média, para a conta antiga continuar valendo. */
+function pair(single: number, right?: number, left?: number) {
+  if (typeof right === "number" && typeof left === "number" && Number.isFinite(right) && Number.isFinite(left)) {
+    return (right + left) / 2;
+  }
+  return single;
+}
+
 export function bodyMetrics(input: BodyInput): BodyResult {
   const heightM = input.heightCm / 100;
   const bmi = input.weightKg / (heightM * heightM);
   const whr = input.waistCm / input.hipCm;
   const girthSumCm =
     input.chestCm +
-    input.bicepsCm +
-    input.forearmCm +
+    pair(input.bicepsCm, input.bicepsRightCm, input.bicepsLeftCm) +
+    pair(input.forearmCm, input.forearmRightCm, input.forearmLeftCm) +
     input.waistCm +
     input.abdomenCm +
     input.hipCm +
-    input.thighCm;
+    pair(input.thighCm, input.thighRightCm, input.thighLeftCm);
   const rawFat =
     input.sex === "f"
       ? siri(femaleDensity(input.abdomenCm, input.hipCm, input.heightCm, input.age))
