@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 const iconColor = {
   "/dashboard": "#3b82f6",
@@ -50,6 +50,24 @@ const mobileNav = [
   { href: "/configuracoes", label: "Mais", icon: MoreHorizontal },
 ];
 
+function MenuMark({
+  href,
+  icon: Icon,
+}: {
+  href: string;
+  icon: typeof LayoutDashboard;
+}) {
+  const color = iconColor[href as keyof typeof iconColor] ?? "#e50914";
+  return (
+    <span
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px]"
+      style={{ backgroundColor: `${color}24`, color }}
+    >
+      <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
+    </span>
+  );
+}
+
 function isActive(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === "/dashboard";
   return pathname === href || pathname.startsWith(href + "/");
@@ -60,13 +78,39 @@ export function PersonalShell({ children }: { children: ReactNode }) {
   const profile = useProfile();
   const name = profile?.name ?? "";
   const studio = profile?.studioName || "Meu studio";
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    setCollapsed(localStorage.getItem("nfit_sidebar") === "icons");
+  }, []);
+
+  function toggleSidebar() {
+    setCollapsed((open) => {
+      const next = !open;
+      localStorage.setItem("nfit_sidebar", next ? "icons" : "full");
+      return next;
+    });
+  }
 
   return (
     <div className="min-h-dvh bg-bg md:flex">
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:flex">
-        <div className="border-b border-border px-4 py-5">
-          <AppName size="lg" />
-          <p className="mt-2 truncate text-caption">{studio}</p>
+      <aside
+        className={cn(
+          "hidden shrink-0 flex-col border-r border-border bg-surface transition-[width] md:flex",
+          collapsed ? "w-[4.5rem]" : "w-60",
+        )}
+      >
+        <div className={cn("border-b border-border py-5", collapsed ? "px-2" : "px-4")}>
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className={cn("rounded-[var(--radius-md)]", collapsed && "mx-auto flex")}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? "Abrir o menu" : "Recolher o menu e deixar só os ícones"}
+          >
+            <AppName size="lg" iconOnly={collapsed} />
+          </button>
+          {collapsed ? null : <p className="mt-2 truncate text-caption">{studio}</p>}
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 p-2">
           {sidebar.map((item) => {
@@ -76,26 +120,30 @@ export function PersonalShell({ children }: { children: ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
+                title={item.label}
                 className={cn(
                   "flex min-h-12 items-center gap-3 rounded-[var(--radius-md)] px-3 py-3 text-base font-semibold transition",
+                  collapsed && "justify-center px-0",
                   active
                     ? "bg-brand-muted text-brand-hover"
                     : "text-text-muted hover:bg-hover hover:text-text",
                 )}
               >
-                <Icon className="h-6 w-6 shrink-0" style={{ color: iconColor[item.href] }} />
-                {item.label}
+                <MenuMark href={item.href} icon={Icon} />
+                {collapsed ? <span className="sr-only">{item.label}</span> : item.label}
               </Link>
             );
           })}
         </nav>
-        <div className="border-t border-border p-4">
-          <div className="flex items-center gap-3">
+        <div className={cn("border-t border-border p-4", collapsed && "px-2")}>
+          <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
             <Avatar name={name || "?"} size="md" />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{name || "…"}</p>
-              <p className="truncate text-caption">Personal</p>
-            </div>
+            {collapsed ? null : (
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{name || "…"}</p>
+                <p className="truncate text-caption">Personal</p>
+              </div>
+            )}
           </div>
         </div>
       </aside>
@@ -128,7 +176,7 @@ export function PersonalShell({ children }: { children: ReactNode }) {
                     active ? "text-brand" : "text-text-muted",
                   )}
                 >
-                  <Icon className="h-6 w-6" style={{ color: iconColor[item.href] }} />
+                  <MenuMark href={item.href} icon={Icon} />
                   {item.label}
                 </Link>
               </li>

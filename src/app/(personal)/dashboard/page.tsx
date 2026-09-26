@@ -89,7 +89,9 @@ export default function DashboardPage() {
               <Card className="cursor-pointer transition hover:bg-hover">
                 <div className="flex items-start justify-between">
                   <p className="text-caption">{c.label}</p>
-                  <Icon className="h-4 w-4 text-brand" />
+                  <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-brand-muted text-brand">
+                    <Icon className="h-4 w-4" strokeWidth={1.75} />
+                  </span>
                 </div>
                 <p className="mt-2 text-4xl font-bold tabular-nums">{c.value}</p>
               </Card>

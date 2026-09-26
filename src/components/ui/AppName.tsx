@@ -3,9 +3,11 @@ import { cn } from "@/lib/utils";
 /** Ícone do app ao lado do nome NFIT. */
 export function AppName({
   size = "md",
+  iconOnly = false,
   className,
 }: {
   size?: "md" | "lg";
+  iconOnly?: boolean;
   className?: string;
 }) {
   const px = size === "lg" ? 56 : 36;
@@ -16,11 +18,13 @@ export function AppName({
         alt=""
         width={px}
         height={px}
-        className="shrink-0 rounded-[22%]"
+        className="shrink-0 rounded-[22%] ring-1 ring-white/15"
       />
-      <span className={cn("font-semibold tracking-wide text-text", size === "lg" ? "text-xl" : "text-base")}>
-        NFIT
-      </span>
+      {iconOnly ? null : (
+        <span className={cn("font-medium tracking-[0.22em] text-text", size === "lg" ? "text-lg" : "text-sm")}>
+          NFIT
+        </span>
+      )}
     </div>
   );
 }

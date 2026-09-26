@@ -61,7 +61,12 @@ export function AlunoShell({ children }: { children: ReactNode }) {
                       active ? "text-brand" : "text-text-muted",
                     )}
                   >
-                    <Icon className="h-6 w-6" style={{ color: item.color }} />
+                    <span
+                      className="flex h-9 w-9 items-center justify-center rounded-[11px]"
+                      style={{ backgroundColor: `${item.color}24`, color: item.color }}
+                    >
+                      <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
+                    </span>
                     {item.label}
                   </Link>
                 </li>
