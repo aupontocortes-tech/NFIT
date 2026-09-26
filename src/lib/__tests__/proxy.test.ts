@@ -25,6 +25,10 @@ describe("acesso aberto (sem login)", () => {
       "http://localhost:3000/dashboard",
     );
   });
+  it("o convite do aluno abre mesmo com sessão da personal", () => {
+    expect(run("/convite", "personal").headers.get("location")).toBeNull();
+    expect(run("/convite").headers.get("location")).toBeNull();
+  });
   it("já com sessão personal segue normal", () => {
     expect(run("/alunos/s-001", "personal").headers.get("location")).toBeNull();
   });

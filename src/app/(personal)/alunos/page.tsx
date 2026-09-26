@@ -9,6 +9,7 @@ import {
   PageHeader,
   SkeletonList,
 } from "@/components/ui";
+import { AlunoInviteLink } from "@/components/students/AlunoInviteLink";
 import { api } from "@/lib/api";
 import type { Student } from "@/lib/mocks";
 import { Users } from "lucide-react";
@@ -49,6 +50,7 @@ export default function AlunosPage() {
           </Link>
         }
       />
+      <AlunoInviteLink />
       <div className="mb-4 flex flex-col gap-3 sm:flex-row">
         <Input
           placeholder="Buscar por nome ou e-mail"

@@ -1,5 +1,6 @@
 "use client";
 
+import { AlunoInviteLink } from "@/components/students/AlunoInviteLink";
 import { Button, Card, Input, PageHeader, Textarea } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { api, ApiError } from "@/lib/api";
@@ -44,6 +45,7 @@ export default function NovoAlunoPage() {
   return (
     <div>
       <PageHeader title="Novo aluno" />
+      <AlunoInviteLink />
       <Card className="max-w-2xl">
         <form onSubmit={onSubmit} noValidate className="grid gap-4 md:grid-cols-2">
           <Input

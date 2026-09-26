@@ -77,6 +77,18 @@ export async function listStudents(params?: { q?: string; status?: string }): Pr
   return (rows as Row[]).map(mapRow);
 }
 
+export async function findStudentByEmail(email: string): Promise<Student | null> {
+  await ensureAvatarColumn();
+  const rows = await db()`
+    SELECT id, name, email, phone, notes, status, avatar_url, created_at
+    FROM nfit_students
+    WHERE lower(email) = ${email.trim().toLowerCase()}
+    LIMIT 1
+  `;
+  const row = (rows as Row[])[0];
+  return row ? mapRow(row) : null;
+}
+
 export async function getStudent(id: string): Promise<Student | null> {
   await ensureAvatarColumn();
   const rows = await db()`
