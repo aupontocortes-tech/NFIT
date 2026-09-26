@@ -24,15 +24,30 @@ export type AiExercise = {
   name: string;
   sets: number;
   reps: string;
+  /** Intensidade prescrita: %1RM (ex.: "70% 1RM") ou RPE (ex.: "RPE 7"). */
+  intensity?: string;
   restSeconds?: number;
   notes?: string;
+  /** Alternativas do mesmo grupo muscular para o exercício principal. */
+  alternatives?: string[];
   order: number;
 };
+
+export type AiWorkoutBlock = {
+  name: string;
+  order: number;
+  warmUp?: string;
+  coolDown?: string;
+  exercises: AiExercise[];
+};
+
 export type AiWorkout = {
   title: string;
   goal: string;
   notes: string;
-  blocks: { name: string; order: number; exercises: AiExercise[] }[];
+  /** Avisos de dados faltantes, dor/lesão ou necessidade de revisão humana. */
+  warnings?: string[];
+  blocks: AiWorkoutBlock[];
 };
 
 export class AiNotConfiguredError extends Error {}
@@ -50,27 +65,41 @@ export function aiProvider(): Provider | null {
   return null;
 }
 
-const SYSTEM = `Você é um personal trainer brasileiro experiente (CREF). Monte treinos seguros, 
-objetivos e realistas, em português do Brasil. Respeite limitações e lesões informadas; 
-na dúvida, prefira exercícios mais seguros. Responda SOMENTE com JSON válido, sem texto extra.`;
+const SYSTEM = `PAPEL: A IA só gera RASCUNHO. O personal revisa, ajusta e publica. Nunca publicar direto pro aluno. Nunca inventar CREF, diagnóstico ou promessa médica.
+BASE CIENTÍFICA: Seguir as diretrizes do ACSM, complementadas pela NSCA quando aplicável. Toda escolha de volume, intensidade e frequência deve poder ser justificada por ACSM/NSCA. Nunca contradizer as diretrizes para agradar ou simplificar.
+ANTES DE GERAR (obrigatório): Checar nível (iniciante/intermediário/avançado), objetivo, lesões ou limitações, frequência disponível e equipamento. Se faltar algum desses dados, avisar o que falta; nunca gerar treino genérico. Dor, lesão ou condição de saúde: recomendar avaliação profissional, não prescrever e marcar para revisão humana.
+FITT-VP (em toda prescrição): Frequência: iniciante 2 a 3x/semana por grupo muscular; intermediário e avançado 3 a 5x. Intensidade: por %1RM ou RPE, nunca peso aleatório; nunca intensidade máxima para iniciante. Tempo: coerente com o objetivo. Tipo: exercício adequado ao objetivo e ao nível técnico. Volume: séries x reps x carga, com controle do volume semanal por grupo muscular. Progressão: no máximo 10% por semana.
+RECUPERAÇÃO: Mínimo de 48h entre treinos do mesmo grupo muscular, nunca em dias consecutivos, salvo protocolo justificado.
+PROGRESSÃO POR NÍVEL: Iniciante: progressão linear e mais rápida. Avançado: progressão mais lenta, com periodização linear, ondulatória ou em blocos.
+ESTRUTURA DA SESSÃO: Sempre incluir aquecimento e, quando cabível, volta à calma.
+FORMATO DO RASCUNHO: Exercícios com séries, reps, intensidade (%1RM ou RPE), descanso e observações. Alternativas do mesmo grupo muscular para cada exercício principal. Avisos de dados faltantes no topo.
+APRENDIZADO (futuro, não implementar agora): correções do personal, treinos publicados e feedback do aluno valem só para aquele personal.`;
 
 function userPrompt(i: WorkoutInput) {
-  return `Crie um plano de treino com estes dados:
+  return `Crie um plano de treino (RASCUNHO) com estes dados:
 - Objetivo: ${i.goal}
 - Nível: ${i.level}
 - Dias por semana: ${i.daysPerWeek} (crie exatamente ${i.daysPerWeek} blocos, um por dia)
 - Duração por sessão: ${i.sessionMinutes} minutos
-- Equipamentos: ${i.equipment || "academia completa"}
-- Limitações/lesões: ${i.constraints || "nenhuma informada"}
+- Equipamentos: ${i.equipment || "não informado"}
+- Limitações/lesões: ${i.constraints || "não informado"}
 ${i.studentName ? `- Aluno: ${i.studentName}` : ""}
 ${i.prompt ? `- Pedido extra do personal: ${i.prompt}` : ""}
 
+Responda SOMENTE com JSON válido, sem texto extra.
 Formato JSON exato:
 {"title": string, "goal": string, "notes": string (dicas de progressão e segurança, até 300 caracteres),
- "blocks": [{"name": "Dia 1 — Grupo muscular", "exercises": [
-   {"name": string, "sets": number, "reps": string (ex.: "8-12"), "restSeconds": number, "notes": string opcional}
+ "warnings": [string] (avisos de dados faltantes; dor/lesão que exige revisão humana — array vazio se nenhum),
+ "blocks": [{"name": "Dia 1 — Grupo muscular",
+   "warmUp": string (aquecimento obrigatório),
+   "coolDown": string opcional (volta à calma quando cabível),
+   "exercises": [
+   {"name": string, "sets": number, "reps": string (ex.: "8-12"),
+    "intensity": string (ex.: "70% 1RM" ou "RPE 7"),
+    "restSeconds": number, "notes": string opcional,
+    "alternatives": [string] (exercícios do mesmo grupo muscular)}
  ]}]}
-Use de 4 a 8 exercícios por dia, compatíveis com a duração.`;
+Use de 4 a 8 exercícios por dia, compatíveis com a duração. Sempre inclua intensity e alternatives nos exercícios principais.`;
 }
 
 async function fetchJson(url: string, init: RequestInit, timeoutMs = 45000) {
@@ -149,6 +178,15 @@ const int = (v: unknown, min: number, max: number, fallback: number) => {
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
 };
 
+function normalizeStringList(raw: unknown, itemMax: number, listMax: number): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const list = raw
+    .map((item) => str(item, itemMax))
+    .filter(Boolean)
+    .slice(0, listMax);
+  return list.length > 0 ? list : undefined;
+}
+
 /** Valida e normaliza a resposta — nunca confia cegamente na IA. */
 export function normalizeWorkout(raw: unknown, input: WorkoutInput): AiWorkout {
   const r = (raw ?? {}) as Record<string, unknown>;
@@ -161,24 +199,38 @@ export function normalizeWorkout(raw: unknown, input: WorkoutInput): AiWorkout {
           const ee = (e ?? {}) as Record<string, unknown>;
           const name = str(ee.name, 80);
           if (!name) return null;
+          const intensity = str(ee.intensity, 40) || undefined;
+          const alternatives = normalizeStringList(ee.alternatives, 80, 5);
           return {
             name,
             sets: int(ee.sets, 1, 10, 3),
             reps: str(typeof ee.reps === "number" ? String(ee.reps) : ee.reps, 20, "10-12"),
+            intensity,
             restSeconds: int(ee.restSeconds, 15, 300, 60),
             notes: str(ee.notes, 160) || undefined,
+            alternatives,
             order: ei,
           };
         })
         .filter(Boolean) as AiExercise[];
-      return { name: str(bb.name, 60, `Dia ${bi + 1}`), order: bi, exercises: ex };
+      const warmUp = str(bb.warmUp, 300) || undefined;
+      const coolDown = str(bb.coolDown, 300) || undefined;
+      return {
+        name: str(bb.name, 60, `Dia ${bi + 1}`),
+        order: bi,
+        warmUp,
+        coolDown,
+        exercises: ex,
+      };
     })
     .filter((b) => b.exercises.length > 0);
   if (blocks.length === 0) throw new Error("IA não retornou exercícios");
+  const warnings = normalizeStringList(r.warnings, 240, 12);
   return {
     title: str(r.title, 80, `Plano ${input.goal} ${input.daysPerWeek}x`),
     goal: str(r.goal, 60, input.goal),
     notes: str(r.notes, 400, "Rascunho gerado por IA. Revise antes de salvar ou atribuir."),
+    warnings,
     blocks,
   };
 }
