@@ -12,7 +12,7 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
 import { aiDraftFixture, type Student, type Workout } from "@/lib/mocks";
-import { Sparkles } from "lucide-react";
+import { AlertTriangle, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -95,6 +95,8 @@ export default function RascunhoIaPage() {
     }
   }
 
+  const warnings = workout.warnings?.filter(Boolean) ?? [];
+
   return (
     <div>
       <PageHeader
@@ -105,6 +107,23 @@ export default function RascunhoIaPage() {
         <Badge tone="draft" />
         <Badge tone="ai" />
       </div>
+
+      {warnings.length > 0 ? (
+        <div
+          role="alert"
+          className="mb-4 rounded-[var(--radius-lg)] border border-warning bg-brand-muted p-4 text-ai-text"
+        >
+          <div className="mb-2 flex items-center gap-2 font-semibold">
+            <AlertTriangle className="h-5 w-5 shrink-0" aria-hidden />
+            Avisos para revisão humana
+          </div>
+          <ul className="list-disc space-y-1 pl-5 text-sm">
+            {warnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <Card className="mb-4 space-y-3">
         <Input
@@ -127,6 +146,18 @@ export default function RascunhoIaPage() {
       {workout.blocks.map((block, bi) => (
         <Card key={bi} className="mb-4">
           <h3 className="text-subtitle mb-3">{block.name ?? `Bloco ${bi + 1}`}</h3>
+          {block.warmUp ? (
+            <p className="mb-2 text-sm text-text-muted">
+              <span className="font-semibold text-text">Aquecimento: </span>
+              {block.warmUp}
+            </p>
+          ) : null}
+          {block.coolDown ? (
+            <p className="mb-3 text-sm text-text-muted">
+              <span className="font-semibold text-text">Volta à calma: </span>
+              {block.coolDown}
+            </p>
+          ) : null}
           <ul className="space-y-2">
             {block.exercises.map((ex, ei) => (
               <li
@@ -149,8 +180,18 @@ export default function RascunhoIaPage() {
                 />
                 <p className="mt-2 text-caption tabular-nums">
                   {ex.sets}×{ex.reps}
+                  {ex.intensity ? ` · ${ex.intensity}` : ex.load ? ` · ${ex.load}` : ""}
                   {ex.restSeconds ? ` · ${ex.restSeconds}s` : ""}
                 </p>
+                {ex.notes ? (
+                  <p className="mt-1 text-sm text-text-muted">{ex.notes}</p>
+                ) : null}
+                {ex.alternatives && ex.alternatives.length > 0 ? (
+                  <p className="mt-1 text-sm text-text-muted">
+                    <span className="font-semibold text-text">Alternativas: </span>
+                    {ex.alternatives.join(" · ")}
+                  </p>
+                ) : null}
               </li>
             ))}
           </ul>

@@ -34,14 +34,20 @@ export interface Exercise {
   sets: number;
   reps: string;
   load?: string;
+  /** Intensidade prescrita: %1RM ou RPE (rascunhos IA). */
+  intensity?: string;
   restSeconds?: number;
   notes?: string;
+  /** Alternativas do mesmo grupo muscular (rascunhos IA). */
+  alternatives?: string[];
   order: number;
 }
 
 export interface WorkoutBlock {
   name?: string;
   order: number;
+  warmUp?: string;
+  coolDown?: string;
   exercises: Exercise[];
 }
 
@@ -52,6 +58,8 @@ export interface Workout {
   status: WorkoutStatus;
   generatedByAi: boolean;
   notes?: string;
+  /** Avisos da IA (dados faltantes, dor/lesão, revisão humana). */
+  warnings?: string[];
   blocks: WorkoutBlock[];
   updatedAt: string;
   exerciseCount: number;
@@ -426,25 +434,96 @@ export const aiDraftFixture: Workout = {
   updatedAt: new Date().toISOString(),
   exerciseCount: 8,
   notes: "Rascunho gerado por IA. Revise antes de salvar ou atribuir.",
+  warnings: [
+    "Frequência desejada (4x) acima do usual para iniciante — confirme o nível do aluno.",
+  ],
   blocks: [
     {
       name: "Segunda — Peito/Tríceps",
       order: 0,
+      warmUp: "5–8 min esteira leve + mobilidade de ombro e peitoral.",
+      coolDown: "Alongamento de peitoral e tríceps, 2–3 min.",
       exercises: [
-        { name: "Supino inclinado", sets: 4, reps: "8-10", restSeconds: 90, order: 0 },
-        { name: "Crucifixo", sets: 3, reps: "12", restSeconds: 60, order: 1 },
-        { name: "Tríceps corda", sets: 3, reps: "12-15", restSeconds: 60, order: 2 },
-        { name: "Mergulho banco", sets: 3, reps: "10", restSeconds: 60, order: 3 },
+        {
+          name: "Supino inclinado",
+          sets: 4,
+          reps: "8-10",
+          intensity: "70% 1RM",
+          restSeconds: 90,
+          alternatives: ["Supino máquina", "Supino com halteres"],
+          order: 0,
+        },
+        {
+          name: "Crucifixo",
+          sets: 3,
+          reps: "12",
+          intensity: "RPE 7",
+          restSeconds: 60,
+          alternatives: ["Peck deck", "Crossover"],
+          order: 1,
+        },
+        {
+          name: "Tríceps corda",
+          sets: 3,
+          reps: "12-15",
+          intensity: "RPE 7",
+          restSeconds: 60,
+          alternatives: ["Tríceps pulley barra", "Tríceps testa"],
+          order: 2,
+        },
+        {
+          name: "Mergulho banco",
+          sets: 3,
+          reps: "10",
+          intensity: "RPE 6",
+          restSeconds: 60,
+          alternatives: ["Tríceps banco máquina"],
+          order: 3,
+        },
       ],
     },
     {
       name: "Terça — Costas/Bíceps",
       order: 1,
+      warmUp: "Remada com elástico + ativação escapular, 5 min.",
+      coolDown: "Alongamento de dorsais e bíceps.",
       exercises: [
-        { name: "Barra fixa assistida", sets: 4, reps: "6-8", restSeconds: 90, order: 0 },
-        { name: "Remada unilateral", sets: 3, reps: "10", restSeconds: 75, order: 1 },
-        { name: "Rosca martelo", sets: 3, reps: "12", restSeconds: 60, order: 2 },
-        { name: "Face pull", sets: 3, reps: "15", restSeconds: 45, order: 3 },
+        {
+          name: "Barra fixa assistida",
+          sets: 4,
+          reps: "6-8",
+          intensity: "RPE 8",
+          restSeconds: 90,
+          alternatives: ["Puxada frontal", "Pulldown neutro"],
+          order: 0,
+        },
+        {
+          name: "Remada unilateral",
+          sets: 3,
+          reps: "10",
+          intensity: "70% 1RM",
+          restSeconds: 75,
+          alternatives: ["Remada curvada", "Remada máquina"],
+          order: 1,
+        },
+        {
+          name: "Rosca martelo",
+          sets: 3,
+          reps: "12",
+          intensity: "RPE 7",
+          restSeconds: 60,
+          alternatives: ["Rosca direta", "Rosca scott"],
+          order: 2,
+        },
+        {
+          name: "Face pull",
+          sets: 3,
+          reps: "15",
+          intensity: "RPE 6",
+          restSeconds: 45,
+          alternatives: ["Crucifixo inverso", "Pull-apart elástico"],
+          order: 3,
+        },
       ],
     },
   ],

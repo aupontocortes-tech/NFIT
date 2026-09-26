@@ -579,8 +579,9 @@ export const api = {
         title: data.title ?? "Novo treino",
         goal: data.goal,
         status: (data.status as Workout["status"]) ?? "draft",
-        generatedByAi: false,
+        generatedByAi: data.generatedByAi ?? false,
         notes: data.notes,
+        warnings: data.warnings,
         blocks: data.blocks ?? [],
         updatedAt: new Date().toISOString(),
         exerciseCount:
