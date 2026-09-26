@@ -11,29 +11,36 @@ function db() {
 let ready: Promise<void> | null = null;
 
 function ensureTables() {
-  ready ??= (async () => {
-    const sql = db();
-    await sql`
-      CREATE TABLE IF NOT EXISTS nfit_checkin_links (
-        student_id text PRIMARY KEY,
-        token text NOT NULL UNIQUE
-      )
-    `;
-    await sql`
-      CREATE TABLE IF NOT EXISTS nfit_checkins (
-        id text PRIMARY KEY,
-        student_id text NOT NULL,
-        weight_kg double precision,
-        waist_cm double precision,
-        hip_cm double precision,
-        notes text,
-        photo_urls text NOT NULL DEFAULT '[]',
-        details text,
-        created_at timestamptz NOT NULL DEFAULT now()
-      )
-    `;
-    await sql`ALTER TABLE nfit_checkins ADD COLUMN IF NOT EXISTS details text`;
-  })();
+  if (!ready) {
+    ready = (async () => {
+      try {
+        const sql = db();
+        await sql`
+          CREATE TABLE IF NOT EXISTS nfit_checkin_links (
+            student_id text PRIMARY KEY,
+            token text NOT NULL UNIQUE
+          )
+        `;
+        await sql`
+          CREATE TABLE IF NOT EXISTS nfit_checkins (
+            id text PRIMARY KEY,
+            student_id text NOT NULL,
+            weight_kg double precision,
+            waist_cm double precision,
+            hip_cm double precision,
+            notes text,
+            photo_urls text NOT NULL DEFAULT '[]',
+            details text,
+            created_at timestamptz NOT NULL DEFAULT now()
+          )
+        `;
+        await sql`ALTER TABLE nfit_checkins ADD COLUMN IF NOT EXISTS details text`;
+      } catch (e) {
+        ready = null;
+        throw e;
+      }
+    })();
+  }
   return ready;
 }
 

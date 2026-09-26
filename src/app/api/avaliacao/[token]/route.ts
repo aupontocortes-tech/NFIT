@@ -19,7 +19,7 @@ export async function GET(_request: Request, ctx: Ctx) {
     if (!student) {
       return Response.json({ error: { message: "Aluno não encontrado" } }, { status: 404 });
     }
-    return Response.json({ name: firstName(student.name) });
+    return Response.json({ name: firstName(student.name), avatarUrl: student.avatarUrl ?? null });
   } catch (e) {
     console.error("[avaliacao]", e);
     return Response.json({ error: { message: "Não foi possível abrir o link." } }, { status: 503 });

@@ -2,9 +2,11 @@
 
 import { PoseGuide } from "@/components/assessments/PoseGuide";
 import { AppName } from "@/components/ui/AppName";
-import { Button, Card, Input, PhotoPicker, Select, Textarea } from "@/components/ui";
+import { Button, Card, Input, Modal, PhotoPicker, Select, Textarea } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { bodyMetrics, type Sex } from "@/lib/body-metrics";
+import { applyTheme, themeIsDark } from "@/lib/theme";
+import { Settings } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
@@ -25,6 +27,9 @@ export default function AvaliacaoClientePage() {
   const { token } = useParams<{ token: string }>();
   const { toast } = useToast();
   const [name, setName] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState<string[]>([]);
+  const [dark, setDark] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [missing, setMissing] = useState(false);
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -72,6 +77,25 @@ export default function AvaliacaoClientePage() {
   }, [form]);
 
   useEffect(() => {
+    setDark(themeIsDark());
+  }, []);
+
+  async function saveAvatar(url: string | null) {
+    setAvatar(url ? [url] : []);
+    const res = await fetch(`/api/avaliacao/${token}/foto`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ avatarUrl: url }),
+    });
+    if (!res.ok) toast("Não foi possível salvar a foto", "error");
+  }
+
+  function setMode(mode: "light" | "dark") {
+    applyTheme(mode);
+    setDark(mode === "dark");
+  }
+
+  useEffect(() => {
     const href = `/avaliacao/${token}/manifesto`;
     let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
     if (!link) {
@@ -92,6 +116,7 @@ export default function AvaliacaoClientePage() {
         if (!r.ok) return;
         const data = await r.json();
         setName(data.name ?? "");
+        setAvatar(data.avatarUrl ? [data.avatarUrl] : []);
       })
       .catch(() => setMissing(true));
   }, [token]);
@@ -133,7 +158,17 @@ export default function AvaliacaoClientePage() {
 
   return (
     <div className="mx-auto min-h-dvh max-w-lg px-4 py-8 pb-48">
-      <AppName />
+      <div className="flex items-center justify-between gap-3">
+        <AppName />
+        <button
+          type="button"
+          onClick={() => setSettingsOpen(true)}
+          aria-label="Configurações"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border"
+        >
+          <Settings className="h-5 w-5" />
+        </button>
+      </div>
       {missing ? (
         <Card className="mt-8">
           <h1 className="text-title">Link inválido</h1>
@@ -148,6 +183,18 @@ export default function AvaliacaoClientePage() {
         </Card>
       ) : (
         <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-4">
+          <Card className="space-y-3">
+            <p className="text-base font-semibold">Sua foto</p>
+            <p className="text-sm text-text-muted">Opcional. Pode tirar agora ou escolher uma que já tem.</p>
+            <PhotoPicker
+              photos={avatar}
+              max={1}
+              chooseSource
+              showFileHint={false}
+              onUploaded={(url) => saveAvatar(url)}
+              onRemove={() => saveAvatar(null)}
+            />
+          </Card>
           <div>
             <h1 className="text-title">Atualização do corpo</h1>
             <p className="mt-2 text-body-sm text-text-muted">
@@ -210,6 +257,27 @@ export default function AvaliacaoClientePage() {
           </Button>
         </form>
       )}
+      <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Configurações">
+        <p className="mb-3 text-sm font-semibold">Aparência</p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setMode("light")}
+            aria-pressed={!dark}
+            className={`h-10 rounded-[var(--radius-md)] border px-3 text-sm font-semibold ${dark ? "border-border" : "border-brand bg-brand text-text-inverse"}`}
+          >
+            Modo claro
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("dark")}
+            aria-pressed={dark}
+            className={`h-10 rounded-[var(--radius-md)] border px-3 text-sm font-semibold ${dark ? "border-brand bg-brand text-text-inverse" : "border-border"}`}
+          >
+            Modo escuro
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
