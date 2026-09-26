@@ -4,7 +4,8 @@ import { PoseGuide } from "@/components/assessments/PoseGuide";
 import { AppName } from "@/components/ui/AppName";
 import { Button, Card, Input, Modal, PhotoPicker, Select, Textarea } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
-import { bodyMetrics, type Sex } from "@/lib/body-metrics";
+import { bmiLabel, whrLabel, type Sex } from "@/lib/body-metrics";
+import { heightToCm, parseBrNumber } from "@/lib/br-number";
 import { AppearancePicker } from "@/components/ui/ThemeToggle";
 import { Settings } from "lucide-react";
 import { useParams } from "next/navigation";
@@ -56,37 +57,20 @@ export default function AvaliacaoClientePage() {
   });
 
   function num(value: string) {
-    const n = Number(value.replace(",", "."));
-    return Number.isFinite(n) ? n : Number.NaN;
+    return parseBrNumber(value);
   }
 
-  function avg(right: string, left: string) {
-    return (num(right) + num(left)) / 2;
-  }
-
-  const result = useMemo(() => {
-    const input = {
-      sex: form.sex,
-      age: num(form.age),
-      heightCm: num(form.heightCm),
-      weightKg: num(form.weightKg),
-      chestCm: num(form.chest),
-      bicepsCm: avg(form.bicepsRight, form.bicepsLeft),
-      bicepsRightCm: num(form.bicepsRight),
-      bicepsLeftCm: num(form.bicepsLeft),
-      forearmCm: avg(form.forearmRight, form.forearmLeft),
-      forearmRightCm: num(form.forearmRight),
-      forearmLeftCm: num(form.forearmLeft),
-      waistCm: num(form.waist),
-      abdomenCm: num(form.abdomen),
-      hipCm: num(form.hip),
-      thighCm: avg(form.thighRight, form.thighLeft),
-      thighRightCm: num(form.thighRight),
-      thighLeftCm: num(form.thighLeft),
-    };
-    if (Object.values(input).some((v) => typeof v === "number" && Number.isNaN(v))) return null;
-    if (input.heightCm < 100 || input.weightKg <= 0 || input.waistCm <= 0 || input.hipCm <= 0) return null;
-    return bodyMetrics(input);
+  const preview = useMemo(() => {
+    const age = num(form.age);
+    const heightCm = heightToCm(form.heightCm);
+    const weightKg = num(form.weightKg);
+    const waist = num(form.waist);
+    const hip = num(form.hip);
+    if (age < 5 || age > 100 || heightCm < 100 || heightCm > 230 || weightKg < 20 || weightKg > 300) return null;
+    const heightM = heightCm / 100;
+    const bmi = weightKg / (heightM * heightM);
+    const waistLine = waist > 0 && hip > 0 ? plainWaist(whrLabel(form.sex, waist / hip)) : null;
+    return { weightLine: plainWeight(bmiLabel(bmi)), waistLine };
   }, [form]);
 
   async function saveAvatar(url: string | null) {
@@ -140,19 +124,16 @@ export default function AvaliacaoClientePage() {
         body: JSON.stringify({
           sex: form.sex,
           age: num(form.age),
-          heightCm: num(form.heightCm),
+          heightCm: heightToCm(form.heightCm),
           weightKg: num(form.weightKg),
           chestCm: num(form.chest),
-          bicepsCm: avg(form.bicepsRight, form.bicepsLeft),
           bicepsRightCm: num(form.bicepsRight),
           bicepsLeftCm: num(form.bicepsLeft),
-          forearmCm: avg(form.forearmRight, form.forearmLeft),
           forearmRightCm: num(form.forearmRight),
           forearmLeftCm: num(form.forearmLeft),
           waistCm: num(form.waist),
           abdomenCm: num(form.abdomen),
           hipCm: num(form.hip),
-          thighCm: avg(form.thighRight, form.thighLeft),
           thighRightCm: num(form.thighRight),
           thighLeftCm: num(form.thighLeft),
           notes: form.notes,
@@ -227,9 +208,9 @@ export default function AvaliacaoClientePage() {
               <option value="f">Mulher</option>
               <option value="m">Homem</option>
             </Select>
-            <Input label="Idade" inputMode="numeric" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} required />
-            <Input label="Altura (cm)" inputMode="decimal" value={form.heightCm} onChange={(e) => setForm({ ...form, heightCm: e.target.value })} required />
-            <Input label="Peso (kg)" inputMode="decimal" value={form.weightKg} onChange={(e) => setForm({ ...form, weightKg: e.target.value })} required />
+            <Input label="Idade" inputMode="decimal" placeholder="27 ou 27,5" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} required />
+            <Input label="Altura" inputMode="decimal" placeholder="1,70 ou 170" value={form.heightCm} onChange={(e) => setForm({ ...form, heightCm: e.target.value })} required />
+            <Input label="Peso (kg)" inputMode="decimal" placeholder="62,5" value={form.weightKg} onChange={(e) => setForm({ ...form, weightKg: e.target.value })} required />
             <p className="text-base font-semibold">Medidas do corpo, em centímetros</p>
             <Input label="Peito" inputMode="decimal" value={form.chest} onChange={(e) => setForm({ ...form, chest: e.target.value })} required />
             <div className="space-y-3">
@@ -258,11 +239,11 @@ export default function AvaliacaoClientePage() {
             </div>
             <Textarea label="Como você está se sentindo" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </Card>
-          {result ? (
+          {preview ? (
             <Card>
               <p className="text-base font-semibold">Como você está</p>
-              <p className="mt-2 text-body-sm">{plainWeight(result.bmiLabel)}</p>
-              <p className="mt-1 text-body-sm text-text-muted">{plainWaist(result.whrLabel)}</p>
+              <p className="mt-2 text-body-sm">{preview.weightLine}</p>
+              {preview.waistLine ? <p className="mt-1 text-body-sm text-text-muted">{preview.waistLine}</p> : null}
             </Card>
           ) : null}
           <Card className="space-y-5">
