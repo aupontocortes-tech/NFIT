@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Card, Input, PageHeader, Select, Skeleton, Textarea } from "@/components/ui";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { AppearancePicker } from "@/components/ui/ThemeToggle";
 import { OpenAiKeyCard } from "@/components/settings/OpenAiKeyCard";
 import { useToast } from "@/components/ui/Toast";
 import { api, type PersonalProfile } from "@/lib/api";
@@ -168,12 +168,12 @@ export default function ConfiguracoesPage() {
   return (
     <div>
       <PageHeader title="Configurações" />
-      <Card className="mb-4 flex max-w-lg items-center justify-between gap-4">
+      <Card className="mb-4 max-w-lg space-y-3">
         <div>
           <h2 className="text-subtitle">Aparência</h2>
-          <p className="text-caption">Letras grandes no claro ou no escuro.</p>
+          <p className="text-caption">Escolha o modo claro ou o modo escuro.</p>
         </div>
-        <ThemeToggle labeled />
+        <AppearancePicker />
       </Card>
       <OpenAiKeyCard />
       <form onSubmit={save} className="max-w-lg space-y-4">

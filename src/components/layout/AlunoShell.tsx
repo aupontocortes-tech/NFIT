@@ -1,7 +1,6 @@
 "use client";
 
 import { AppName } from "@/components/ui/AppName";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { api } from "@/lib/api";
 import type { Student } from "@/lib/mocks";
 import { cn } from "@/lib/utils";
@@ -65,7 +64,6 @@ export function AlunoShell({ children }: { children: ReactNode }) {
             </select>
           ) : null}
         </div>
-        <ThemeToggle labeled />
       </header>
       <main
         className={cn(

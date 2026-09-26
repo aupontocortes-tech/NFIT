@@ -5,7 +5,7 @@ import { AppName } from "@/components/ui/AppName";
 import { Button, Card, Input, Modal, PhotoPicker, Select, Textarea } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { bodyMetrics, type Sex } from "@/lib/body-metrics";
-import { applyTheme, themeIsDark } from "@/lib/theme";
+import { AppearancePicker } from "@/components/ui/ThemeToggle";
 import { Settings } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -28,7 +28,6 @@ export default function AvaliacaoClientePage() {
   const { toast } = useToast();
   const [name, setName] = useState<string | null>(null);
   const [avatar, setAvatar] = useState<string[]>([]);
-  const [dark, setDark] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [missing, setMissing] = useState(false);
   const [sent, setSent] = useState(false);
@@ -76,10 +75,6 @@ export default function AvaliacaoClientePage() {
     return bodyMetrics(input);
   }, [form]);
 
-  useEffect(() => {
-    setDark(themeIsDark());
-  }, []);
-
   async function saveAvatar(url: string | null) {
     setAvatar(url ? [url] : []);
     const res = await fetch(`/api/avaliacao/${token}/foto`, {
@@ -88,11 +83,6 @@ export default function AvaliacaoClientePage() {
       body: JSON.stringify({ avatarUrl: url }),
     });
     if (!res.ok) toast("Não foi possível salvar a foto", "error");
-  }
-
-  function setMode(mode: "light" | "dark") {
-    applyTheme(mode);
-    setDark(mode === "dark");
   }
 
   useEffect(() => {
@@ -259,24 +249,7 @@ export default function AvaliacaoClientePage() {
       )}
       <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Configurações">
         <p className="mb-3 text-sm font-semibold">Aparência</p>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setMode("light")}
-            aria-pressed={!dark}
-            className={`h-10 rounded-[var(--radius-md)] border px-3 text-sm font-semibold ${dark ? "border-border" : "border-brand bg-brand text-text-inverse"}`}
-          >
-            Modo claro
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("dark")}
-            aria-pressed={dark}
-            className={`h-10 rounded-[var(--radius-md)] border px-3 text-sm font-semibold ${dark ? "border-brand bg-brand text-text-inverse" : "border-border"}`}
-          >
-            Modo escuro
-          </button>
-        </div>
+        <AppearancePicker />
       </Modal>
     </div>
   );

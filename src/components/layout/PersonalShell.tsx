@@ -2,7 +2,6 @@
 
 import { Avatar } from "@/components/ui";
 import { AppName } from "@/components/ui/AppName";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useProfile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 import {
@@ -153,7 +152,6 @@ export function PersonalShell({ children }: { children: ReactNode }) {
           <AppName className="md:hidden" />
           <p className="hidden text-base font-semibold text-text-muted md:block">Área do Personal</p>
           <div className="flex items-center gap-2">
-            <ThemeToggle labeled />
             <Avatar name={name || "?"} size="sm" className="md:hidden" />
           </div>
         </header>

@@ -1,31 +1,38 @@
 "use client";
 
 import { applyTheme, themeIsDark } from "@/lib/theme";
-import { Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 
-export function ThemeToggle({ labeled = false }: { labeled?: boolean }) {
+export function AppearancePicker() {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
     setDark(themeIsDark());
   }, []);
 
-  function toggle() {
-    const next = !themeIsDark();
-    applyTheme(next ? "dark" : "light");
-    setDark(next);
+  function choose(mode: "dark" | "light") {
+    applyTheme(mode);
+    setDark(mode === "dark");
   }
 
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      aria-pressed={dark}
-      className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-md)] border border-border bg-surface px-3 text-base font-semibold text-text transition hover:bg-hover"
-    >
-      {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      {labeled ? (dark ? "Modo claro" : "Modo escuro") : <span className="sr-only">{dark ? "Modo claro" : "Modo escuro"}</span>}
-    </button>
+    <div className="flex flex-wrap gap-2">
+      <button
+        type="button"
+        onClick={() => choose("light")}
+        aria-pressed={!dark}
+        className={`h-10 rounded-[var(--radius-md)] border px-3 text-sm font-semibold ${dark ? "border-border" : "border-brand bg-brand text-text-inverse"}`}
+      >
+        Modo claro
+      </button>
+      <button
+        type="button"
+        onClick={() => choose("dark")}
+        aria-pressed={dark}
+        className={`h-10 rounded-[var(--radius-md)] border px-3 text-sm font-semibold ${dark ? "border-brand bg-brand text-text-inverse" : "border-border"}`}
+      >
+        Modo escuro
+      </button>
+    </div>
   );
 }

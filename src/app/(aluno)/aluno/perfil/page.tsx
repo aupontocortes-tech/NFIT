@@ -2,7 +2,7 @@
 
 import { Avatar, Button, Card, PageHeader } from "@/components/ui";
 import { PhotoPicker } from "@/components/ui/PhotoPicker";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { AppearancePicker } from "@/components/ui/ThemeToggle";
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
 import type { Student } from "@/lib/mocks";
@@ -66,9 +66,12 @@ export default function AlunoPerfilPage() {
           Salvar foto
         </Button>
       </Card>
-      <Card className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold">Aparência</p>
-        <ThemeToggle labeled />
+      <Card className="mb-4 space-y-3">
+        <div>
+          <p className="text-sm font-semibold">Aparência</p>
+          <p className="text-caption">Escolha o modo claro ou o modo escuro.</p>
+        </div>
+        <AppearancePicker />
       </Card>
       <Card className="space-y-3">
         <Link href="/aluno/pagamentos" className="block text-sm text-brand">
