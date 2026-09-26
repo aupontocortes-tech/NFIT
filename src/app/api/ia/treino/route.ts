@@ -3,6 +3,7 @@ import {
   generateWorkout,
   type WorkoutInput,
 } from "@/lib/server/ai-workout";
+import { getOpenAiKey } from "@/lib/server/openai-key";
 
 // Limite simples por IP para não estourar a cota grátis
 const hits = new Map<string, number[]>();
@@ -45,12 +46,13 @@ export async function POST(request: Request) {
   };
 
   try {
-    const { provider, workout } = await generateWorkout(input);
+    const saved = await getOpenAiKey().catch(() => null);
+    const { provider, workout } = await generateWorkout(input, saved ?? undefined);
     return Response.json({ provider, workout });
   } catch (e) {
     if (e instanceof AiNotConfiguredError) {
       return Response.json(
-        { error: { code: "AI_NOT_CONFIGURED", message: "Configure OPENAI_API_KEY, XAI_API_KEY, GEMINI_API_KEY, GROQ_API_KEY ou OLLAMA_URL no .env.local" } },
+        { error: { code: "AI_NOT_CONFIGURED", message: "Coloque a chave da OpenAI em OPENAI_API_KEY." } },
         { status: 501 },
       );
     }

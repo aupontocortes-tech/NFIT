@@ -11,12 +11,20 @@ import {
   TabPanel,
   Tabs,
 } from "@/components/ui";
+import { AssessmentCompare } from "@/components/assessments/AssessmentCompare";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 import type { Assessment, Assignment, Invoice, Student } from "@/lib/mocks";
 import { formatDate, formatMoney } from "@/lib/utils";
+import { Link2 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+
+function assessmentDate(iso: string) {
+  const raw = iso.length === 10 ? `${iso}T12:00:00` : iso;
+  return formatDate(raw);
+}
 
 const statusTone = {
   active: "active",
@@ -26,8 +34,10 @@ const statusTone = {
 
 export default function AlunoDetalhePage() {
   const { id } = useParams<{ id: string }>();
+  const search = useSearchParams();
+  const { toast } = useToast();
   const [student, setStudent] = useState<Student | null>(null);
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState(search.get("aba") === "avaliacoes" ? "avaliacoes" : "overview");
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
@@ -162,30 +172,62 @@ export default function AlunoDetalhePage() {
       </TabPanel>
 
       <TabPanel when="avaliacoes" active={tab}>
-        <div className="mb-3">
+        <div className="mb-3 flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            onClick={async () => {
+              const res = await fetch(`/api/alunos/${id}/link`, { method: "POST" });
+              const data = await res.json().catch(() => null);
+              if (!res.ok || !data?.url) {
+                toast("Não foi possível criar o link", "error");
+                return;
+              }
+              await navigator.clipboard.writeText(data.url);
+              toast("Link copiado. Envie para a cliente.");
+            }}
+          >
+            <Link2 className="h-4 w-4" />
+            Copiar link da cliente
+          </Button>
           <Link href={`/alunos/${id}/avaliacoes/nova`}>
-            <Button size="sm">Nova avaliação</Button>
+            <Button size="sm" variant="secondary">
+              Nova avaliação
+            </Button>
           </Link>
         </div>
         {assessments.length === 0 ? (
-          <Empty title="Sem avaliações" />
+          <Empty title="Nenhuma avaliação enviada" description="Copie o link e mande para a cliente preencher." />
         ) : (
-          <ul className="space-y-2">
+          <>
+            <AssessmentCompare items={assessments} />
+            <ul className="space-y-2">
             {assessments.map((a) => (
               <li key={a.id}>
                 <Card>
-                  <p className="font-medium">{formatDate(a.date)}</p>
+                  <p className="font-medium">{assessmentDate(a.date)}</p>
                   <p className="text-caption tabular-nums">
                     Peso: {a.weightKg ?? "—"} kg
-                    {a.bodyFatPercent != null
-                      ? ` · Gordura: ${a.bodyFatPercent}%`
-                      : ""}
+                    {a.measurements.waist != null ? ` · Cintura: ${a.measurements.waist} cm` : ""}
+                    {a.measurements.hip != null ? ` · Quadril: ${a.measurements.hip} cm` : ""}
                   </p>
                   {a.notes ? <p className="mt-1 text-sm">{a.notes}</p> : null}
+                  {a.photoUrls.length > 0 ? (
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {a.photoUrls.map((url) => (
+                        <img
+                          key={url}
+                          src={url}
+                          alt="Foto da avaliação"
+                          className="aspect-[3/4] w-full rounded-[var(--radius-md)] object-cover"
+                        />
+                      ))}
+                    </div>
+                  ) : null}
                 </Card>
               </li>
             ))}
-          </ul>
+            </ul>
+          </>
         )}
       </TabPanel>
     </div>

@@ -23,7 +23,7 @@ import {
   type User,
   type Workout,
 } from "./mocks";
-import { blobToDataUrl, compressImage } from "./images";
+import { compressImage } from "./images";
 import type { PixConfig } from "./pix";
 
 export const API_BASE =
@@ -476,78 +476,63 @@ export const api = {
     );
   },
 
-  // ── Students (live) ─────────────────────────────────────────────────────
+  // ── Students (banco Neon via /api/alunos) ──────────────────────────────
   async listStudents(params?: { q?: string; status?: string }) {
-    if (USE_MOCK) {
-      await delay();
-      let items = [...students];
-      if (params?.status) items = items.filter((s) => s.status === params.status);
-      if (params?.q) {
-        const q = params.q.toLowerCase();
-        items = items.filter(
-          (s) =>
-            s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q),
-        );
-      }
-      return { items, page: 1, pageSize: 20, total: items.length };
+    const qs = new URLSearchParams();
+    if (params?.q) qs.set("q", params.q);
+    if (params?.status) qs.set("status", params.status);
+    const res = await fetch(`/api/alunos${qs.size ? `?${qs}` : ""}`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new ApiError(data?.error?.message ?? "Não foi possível listar alunos", res.status);
     }
-    return request<{
-      items: Student[];
-      page: number;
-      pageSize: number;
-      total: number;
-    }>("/students", { query: { q: params?.q, status: params?.status } });
+    const items = (data?.items ?? []) as Student[];
+    return { items, page: 1, pageSize: 20, total: items.length };
   },
 
   async getStudent(id: string) {
-    if (USE_MOCK) {
-      await delay();
-      const s = students.find((x) => x.id === id);
-      if (!s) throw new Error("Aluno não encontrado");
-      return s;
+    const res = await fetch(`/api/alunos/${id}`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new ApiError(data?.error?.message ?? "Aluno não encontrado", res.status);
     }
-    return request<Student>(`/students/${id}`);
+    return data as Student;
   },
 
   async createStudent(data: Partial<Student>) {
-    if (USE_MOCK) {
-      await delay();
-      return {
-        id: `s-${Date.now()}`,
-        name: data.name ?? "",
-        email: data.email ?? "",
-        phone: data.phone,
-        notes: data.notes,
-        status: "invite_pending" as const,
-        createdAt: new Date().toISOString(),
-      };
-    }
-    return request<Student>("/students", {
+    const res = await fetch("/api/alunos", {
       method: "POST",
-      body: {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         name: data.name,
         email: data.email,
         phone: data.phone,
         notes: data.notes,
-      },
+      }),
     });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new ApiError(body?.error?.message ?? "Não foi possível salvar o aluno", res.status);
+    }
+    return body as Student;
   },
 
   async patchStudent(id: string, data: Partial<Student>) {
-    if (USE_MOCK) {
-      await delay();
-      const existing = await this.getStudent(id);
-      return { ...existing, ...data };
-    }
-    return request<Student>(`/students/${id}`, {
+    const res = await fetch(`/api/alunos/${id}`, {
       method: "PATCH",
-      body: {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         name: data.name,
         phone: data.phone,
         notes: data.notes,
         status: data.status,
-      },
+      }),
     });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new ApiError(body?.error?.message ?? "Não foi possível atualizar o aluno", res.status);
+    }
+    return body as Student;
   },
 
   // ── Workouts (live) ─────────────────────────────────────────────────────
@@ -644,16 +629,12 @@ export const api = {
     equipment?: string;
     prompt?: string;
   }) {
-    if (USE_MOCK) {
-      try {
-        sessionStorage.setItem(AI_LAST_INPUT_KEY, JSON.stringify(input));
-      } catch {
-        /* ignore */
-      }
-      return generateWithLocalAi(input);
+    try {
+      sessionStorage.setItem(AI_LAST_INPUT_KEY, JSON.stringify(input));
+    } catch {
+      /* ignore */
     }
-    // Backend MVP is synchronous: POST returns draft (no job poll).
-    return request<AiDraftResponse>("/ai/workouts/generate", { method: "POST", body: input });
+    return generateWithLocalAi(input);
   },
 
   async regenerateWorkoutAi(draftId: string) {
@@ -836,18 +817,17 @@ export const api = {
     );
   },
 
-  /** Envia uma foto (já comprimida no navegador) e devolve a URL pública. */
+  /** Comprime a foto e guarda no Neon. O app fica só com o link curto. */
   async uploadPhoto(file: File): Promise<{ url: string }> {
-    const blob = await compressImage(file);
-    if (USE_MOCK) {
-      await delay(200);
-      // mock: guarda a imagem pequena direto no navegador
-      const small = await compressImage(file, { maxSide: 720, quality: 0.7 });
-      return { url: await blobToDataUrl(small) };
-    }
+    const blob = await compressImage(file, { maxSide: 1280, quality: 0.72 });
     const form = new FormData();
-    form.append("file", blob, file.name.replace(/\.\w+$/, "") + ".jpg");
-    return request<{ url: string }>("/uploads", { method: "POST", body: form });
+    form.append("file", blob, "foto.jpg");
+    const res = await fetch("/api/fotos", { method: "POST", body: form });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.url) {
+      throw new ApiError(data?.error?.message ?? "Não foi possível guardar a foto.", res.status);
+    }
+    return { url: data.url as string };
   },
 
   async addEvolutionPhoto(url: string) {
@@ -870,6 +850,10 @@ export const api = {
   },
 
   async removeEvolutionPhoto(url: string) {
+    const id = url.startsWith("/api/fotos/") ? url.slice("/api/fotos/".length) : "";
+    if (id) {
+      await fetch(`/api/fotos/${id}`, { method: "DELETE" }).catch(() => undefined);
+    }
     return realOrMock(
       () =>
         request<void>("/student/evolution/photos", {
@@ -1082,16 +1066,12 @@ export const api = {
 
   // ── Assessments (soft) ──────────────────────────────────────────────────
   async listAssessments(studentId: string) {
-    return realOrMock(
-      () =>
-        request<{ items: (typeof assessmentsByStudent)[string] }>(
-          `/students/${studentId}/assessments`,
-        ),
-      async () => {
-        await delay();
-        return { items: assessmentsByStudent[studentId] ?? [] };
-      },
-    );
+    const res = await fetch(`/api/alunos/${studentId}/avaliacoes`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new ApiError(data?.error?.message ?? "Não foi possível ler as avaliações", res.status);
+    }
+    return { items: (data?.items ?? []) as (typeof assessmentsByStudent)[string] };
   },
 
   async createAssessment(studentId: string, data: Record<string, unknown>) {

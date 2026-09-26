@@ -2,6 +2,7 @@
 
 import { Button, Card, Input, PageHeader, Select, Skeleton, Textarea } from "@/components/ui";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { OpenAiKeyCard } from "@/components/settings/OpenAiKeyCard";
 import { useToast } from "@/components/ui/Toast";
 import { api, type PersonalProfile } from "@/lib/api";
 import { resetProfile, setProfile } from "@/lib/profile";
@@ -174,6 +175,7 @@ export default function ConfiguracoesPage() {
         </div>
         <ThemeToggle labeled />
       </Card>
+      <OpenAiKeyCard />
       <form onSubmit={save} className="max-w-lg space-y-4">
         <Card className="space-y-4">
           <h2 className="text-subtitle">Perfil</h2>

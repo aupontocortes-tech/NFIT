@@ -32,7 +32,7 @@ export default function NovoAlunoPage() {
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
       });
-      toast("Aluno criado — convite enviado");
+      toast("Aluno cadastrado");
       router.push(`/alunos/${s.id}`);
     } catch (err) {
       toast(err instanceof ApiError ? err.message : "Não foi possível salvar o aluno", "error");
@@ -59,7 +59,7 @@ export default function NovoAlunoPage() {
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             error={errors.email}
-            helper="Será enviado um convite"
+            helper="E-mail do aluno"
           />
           <Input
             label="Telefone"

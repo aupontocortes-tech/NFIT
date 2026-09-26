@@ -40,9 +40,12 @@ export class AiNotConfiguredError extends Error {}
 type Provider = "openai" | "xai" | "gemini" | "groq" | "ollama";
 
 export function aiProvider(): Provider | null {
-  const forced = process.env.AI_PROVIDER as Provider | undefined;
-  if (forced && ["openai", "xai", "gemini", "groq", "ollama"].includes(forced)) return forced;
   if (process.env.OPENAI_API_KEY) return "openai";
+  const forced = process.env.AI_PROVIDER as Provider | undefined;
+  if (forced === "xai" && process.env.XAI_API_KEY) return "xai";
+  if (forced === "gemini" && process.env.GEMINI_API_KEY) return "gemini";
+  if (forced === "groq" && process.env.GROQ_API_KEY) return "groq";
+  if (forced === "ollama" && process.env.OLLAMA_URL) return "ollama";
   if (process.env.XAI_API_KEY) return "xai";
   if (process.env.GEMINI_API_KEY) return "gemini";
   if (process.env.GROQ_API_KEY) return "groq";
@@ -183,8 +186,9 @@ export function normalizeWorkout(raw: unknown, input: WorkoutInput): AiWorkout {
   };
 }
 
-export async function generateWorkout(input: WorkoutInput) {
-  const provider = aiProvider();
+export async function generateWorkout(input: WorkoutInput, openaiKey?: string) {
+  const key = openaiKey || process.env.OPENAI_API_KEY;
+  const provider = key ? "openai" : aiProvider();
   if (!provider) throw new AiNotConfiguredError("Nenhuma IA configurada");
   let text = "";
   if (provider === "openai")
@@ -192,7 +196,7 @@ export async function generateWorkout(input: WorkoutInput) {
       process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
       process.env.OPENAI_MODEL || "gpt-5.4-mini",
       input,
-      process.env.OPENAI_API_KEY,
+      key,
       null, // alguns modelos novos só aceitam a temperatura padrão
     );
   else if (provider === "xai")

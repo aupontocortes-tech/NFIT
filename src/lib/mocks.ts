@@ -141,50 +141,8 @@ export const currentAluno: User = {
   role: "aluno",
 };
 
-export const students: Student[] = [
-  {
-    id: "s-001",
-    name: "Carlos Mendes",
-    email: "carlos@email.com",
-    phone: "(11) 98888-1111",
-    status: "active",
-    createdAt: "2026-01-10T10:00:00Z",
-    activeWorkoutCount: 1,
-    pendingInvoices: 1,
-    unreadMessages: 2,
-  },
-  {
-    id: "s-002",
-    name: "Beatriz Lima",
-    email: "bia@email.com",
-    phone: "(11) 97777-2222",
-    status: "active",
-    createdAt: "2026-02-01T10:00:00Z",
-    activeWorkoutCount: 1,
-    pendingInvoices: 0,
-    unreadMessages: 0,
-  },
-  {
-    id: "s-003",
-    name: "Diego Rocha",
-    email: "diego@email.com",
-    status: "invite_pending",
-    createdAt: "2026-03-15T10:00:00Z",
-    activeWorkoutCount: 0,
-    pendingInvoices: 0,
-    unreadMessages: 0,
-  },
-  {
-    id: "s-004",
-    name: "Elena Costa",
-    email: "elena@email.com",
-    status: "paused",
-    createdAt: "2025-11-20T10:00:00Z",
-    activeWorkoutCount: 0,
-    pendingInvoices: 1,
-    unreadMessages: 1,
-  },
-];
+/** Lista real vem do banco. Isto fica vazio para não reaparecer aluno de exemplo. */
+export const students: Student[] = [];
 
 export const workouts: Workout[] = [
   {
@@ -451,16 +409,12 @@ export const assessmentsByStudent: Record<string, Assessment[]> = {
 };
 
 export const dashboardData = {
-  activeStudents: 2,
-  workoutsThisWeek: 5,
-  pendingInvoices: 2,
-  unreadMessages: 3,
-  upcomingEvents: events.slice(0, 3),
-  recentActivity: [
-    { id: "ra-1", text: "Carlos concluiu treino Hipertrofia A", at: "2026-09-20T19:00:00-03:00" },
-    { id: "ra-2", text: "Novo rascunho IA criado", at: "2026-09-18T09:00:00-03:00" },
-    { id: "ra-3", text: "Beatriz pagou mensalidade", at: "2026-09-14T12:00:00-03:00" },
-  ],
+  activeStudents: 0,
+  workoutsThisWeek: 0,
+  pendingInvoices: 0,
+  unreadMessages: 0,
+  upcomingEvents: [] as typeof events,
+  recentActivity: [] as { id: string; text: string; at: string }[],
 };
 
 export const aiDraftFixture: Workout = {

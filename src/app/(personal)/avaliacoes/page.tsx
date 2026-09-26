@@ -28,7 +28,7 @@ export default function AvaliacoesPage() {
         <ul className="space-y-3">
           {students.map((s) => (
             <li key={s.id}>
-              <Link href={`/alunos/${s.id}`}>
+              <Link href={`/alunos/${s.id}?aba=avaliacoes`}>
                 <Card className="flex items-center gap-3 hover:bg-hover">
                   <Avatar name={s.name} />
                   <div>
