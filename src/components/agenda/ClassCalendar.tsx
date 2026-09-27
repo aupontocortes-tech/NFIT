@@ -155,6 +155,7 @@ export function ClassCalendar({
 
   function Chip({ event }: { event: EventItem }) {
     const given = event.status === "given";
+    const name = event.studentName ?? "Aluno";
     return (
       <div className="flex items-stretch gap-0.5" onClick={(ev) => ev.stopPropagation()}>
         <button
@@ -181,9 +182,9 @@ export function ClassCalendar({
             "min-w-0 flex-1 cursor-grab truncate rounded-[var(--radius-sm)] border px-1.5 py-1 text-left text-xs font-semibold active:cursor-grabbing",
             given && "line-through opacity-80",
           )}
-          style={{ backgroundColor: `${colorFor(event.studentName)}33`, borderColor: colorFor(event.studentName), color: colorFor(event.studentName) }}
+          style={{ backgroundColor: `${colorFor(name)}33`, borderColor: colorFor(name), color: colorFor(name) }}
         >
-          {timeLabel(event.startsAt)} {firstName(event.studentName)}
+          {timeLabel(event.startsAt)} {firstName(name)}
           {given ? " · dada" : ""}
         </button>
         {!readOnly ? (
@@ -259,7 +260,7 @@ export function ClassCalendar({
           {monthCells.map((day) => {
             const inMonth = day.getMonth() === cursor.getMonth();
             const list = eventsOn(day);
-            const tone = list[0] ? colorFor(list[0].studentName) : undefined;
+            const tone = list[0] ? colorFor(list[0].studentName ?? "") : undefined;
             return (
               <div
                 key={day.toISOString()}
@@ -327,7 +328,7 @@ export function ClassCalendar({
           {Array.from({ length: 16 }, (_, i) => i + 6).map((hour) => {
             const list = eventsOn(cursor).filter((e) => new Date(e.startsAt).getHours() === hour);
             const label = `${String(hour).padStart(2, "0")}:00`;
-            const tone = list[0] ? colorFor(list[0].studentName) : undefined;
+            const tone = list[0] ? colorFor(list[0].studentName ?? "") : undefined;
             return (
               <div
                 key={hour}

@@ -20,6 +20,10 @@ function overlaps(start: Date, end: Date, otherStart: Date, otherEnd: Date) {
   return start < otherEnd && otherStart < end;
 }
 
+function shortName(name?: string) {
+  return (name ?? "aluno").trim().split(/\s+/)[0] || "aluno";
+}
+
 function sameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
@@ -136,7 +140,7 @@ export default function AgendaPage() {
         const end = new Date(day.getTime() + 60 * 60 * 1000);
         const other = clash(day, end, student.id);
         if (other) {
-          blocked.add(`${WEEK_DAYS.find((item) => item.id === weekday)?.label} ${clock} atrapalha ${other.studentName.split(" ")[0]}`);
+          blocked.add(`${WEEK_DAYS.find((item) => item.id === weekday)?.label} ${clock} atrapalha ${shortName(other.studentName)}`);
           continue;
         }
         const same = existing.find((e) => sameDay(new Date(e.startsAt), day));
@@ -291,7 +295,7 @@ export default function AgendaPage() {
     const end = form.endsAt ? new Date(form.endsAt) : new Date(start.getTime() + 60 * 60 * 1000);
     const other = clash(start, end, student.id);
     if (other) {
-      toast(`Esse horário atrapalha ${other.studentName.split(" ")[0]}. A aula não foi marcada.`, "error");
+      toast(`Esse horário atrapalha ${shortName(other.studentName)}. A aula não foi marcada.`, "error");
       return;
     }
     try {
@@ -329,7 +333,7 @@ export default function AgendaPage() {
   async function move(event: EventItem, startsAt: Date, endsAt: Date) {
     const other = clash(startsAt, endsAt, event.studentId, event.id);
     if (other) {
-      toast(`Esse horário atrapalha ${other.studentName.split(" ")[0]}. A aula não foi remarcada.`, "error");
+      toast(`Esse horário atrapalha ${shortName(other.studentName)}. A aula não foi remarcada.`, "error");
       return;
     }
     await api.updateEvent(event.id, {
@@ -337,7 +341,7 @@ export default function AgendaPage() {
       endsAt: endsAt.toISOString(),
       status: "rescheduled",
     });
-    toast(`Aula de ${event.studentName} remarcada`);
+    toast(`Aula de ${shortName(event.studentName)} remarcada`);
     await reload();
   }
 
@@ -349,7 +353,7 @@ export default function AgendaPage() {
         endsAt: event.endsAt,
         status: given ? "given" : "scheduled",
       });
-      toast(given ? `Aula de ${event.studentName.split(" ")[0]} dada` : `Aula de ${event.studentName.split(" ")[0]} voltou para marcada`);
+      toast(given ? `Aula de ${shortName(event.studentName)} dada` : `Aula de ${shortName(event.studentName)} voltou para marcada`);
       await reload();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Não foi possível marcar a aula", "error");
