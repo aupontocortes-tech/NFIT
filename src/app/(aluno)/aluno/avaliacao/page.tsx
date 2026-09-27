@@ -1,6 +1,7 @@
 "use client";
 
-import { Card, Empty, PageHeader, Skeleton } from "@/components/ui";
+import { Button, Card, Empty, PageHeader, Skeleton } from "@/components/ui";
+import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
 import type { Assessment } from "@/lib/mocks";
 import { formatDate } from "@/lib/utils";
@@ -10,8 +11,10 @@ import { useEffect, useState } from "react";
 const photoLabels = ["Frente", "Lado direito", "Lado esquerdo", "Costas"];
 
 export default function AlunoAvaliacaoPage() {
+  const { toast } = useToast();
   const [items, setItems] = useState<Assessment[] | null>(null);
   const [when, setWhen] = useState<string | null>(null);
+  const [opening, setOpening] = useState(false);
 
   useEffect(() => {
     const id = localStorage.getItem("nfit_aluno_id") ?? "";
@@ -23,11 +26,41 @@ export default function AlunoAvaliacaoPage() {
     api.listAssessments(id).then((r) => setItems(r.items)).catch(() => setItems([]));
   }, []);
 
+  async function openForm() {
+    const id = localStorage.getItem("nfit_aluno_id") ?? "";
+    if (!id) {
+      toast("Faça o cadastro pelo link da personal.", "error");
+      return;
+    }
+    setOpening(true);
+    try {
+      const res = await fetch(`/api/alunos/${id}/link`, { method: "POST" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.token) {
+        toast("Não foi possível abrir a avaliação", "error");
+        return;
+      }
+      window.location.href = `/avaliacao/${data.token}`;
+    } finally {
+      setOpening(false);
+    }
+  }
+
   if (!items) return <Skeleton className="h-48 w-full" />;
 
   return (
     <div>
-      <PageHeader title="Sua avaliação" />
+      <PageHeader
+        title="Sua avaliação"
+        action={
+          <Button size="sm" loading={opening} onClick={openForm}>
+            Enviar avaliação
+          </Button>
+        }
+      />
+      <p className="mb-4 text-sm text-text-muted">
+        Tire as fotos ou escolha da galeria. Ao enviar, elas ficam salvas e a personal recebe a avaliação.
+      </p>
       {when ? (
         <Card className="mb-4">
           <p className="text-sm font-semibold">Próxima avaliação</p>
