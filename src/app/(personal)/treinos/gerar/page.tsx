@@ -113,6 +113,7 @@ export default function GerarIaPage() {
         JSON.stringify({
           draftId: res.draftId,
           workout: res.workout,
+          studentId: form.studentId || "",
         }),
       );
       if (res.modelMeta.provider === "exemplo") {

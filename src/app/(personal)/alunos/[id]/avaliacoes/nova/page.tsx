@@ -16,7 +16,6 @@ export default function NovaAvaliacaoPage() {
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
     weightKg: "",
-    bodyFatPercent: "",
     waist: "",
     chest: "",
     notes: "",
@@ -29,9 +28,6 @@ export default function NovaAvaliacaoPage() {
       await api.createAssessment(id, {
         date: form.date,
         weightKg: form.weightKg ? Number(form.weightKg) : undefined,
-        bodyFatPercent: form.bodyFatPercent
-          ? Number(form.bodyFatPercent)
-          : undefined,
         measurements: {
           waist: form.waist ? Number(form.waist) : undefined,
           chest: form.chest ? Number(form.chest) : undefined,
@@ -65,15 +61,9 @@ export default function NovaAvaliacaoPage() {
             value={form.weightKg}
             onChange={(e) => setForm({ ...form, weightKg: e.target.value })}
           />
-          <Input
-            label="% Gordura"
-            type="number"
-            step="0.1"
-            value={form.bodyFatPercent}
-            onChange={(e) =>
-              setForm({ ...form, bodyFatPercent: e.target.value })
-            }
-          />
+          <p className="text-sm text-text-muted sm:col-span-2">
+            A porcentagem de gordura sai da avaliação que o aluno preenche. Você não precisa digitar.
+          </p>
           <Input
             label="Cintura (cm)"
             type="number"

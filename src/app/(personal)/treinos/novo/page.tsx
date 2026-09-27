@@ -1,16 +1,18 @@
 "use client";
 
-import { Button, Card, Input, PageHeader, Textarea } from "@/components/ui";
+import { Button, Card, Input, PageHeader, Select, Textarea } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+import type { Student } from "@/lib/mocks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function NovoTreinoPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [students, setStudents] = useState<Student[]>([]);
   const [form, setForm] = useState({
     title: "",
     goal: "",
@@ -18,35 +20,68 @@ export default function NovoTreinoPage() {
     exerciseName: "",
     sets: "3",
     reps: "10",
+    studentId: "",
   });
 
-  async function save(status: "draft" | "template") {
+  useEffect(() => {
+    api.listStudents({ status: "active" }).then((r) => setStudents(r.items)).catch(() => setStudents([]));
+  }, []);
+
+  function workoutBody(status: "draft" | "template") {
+    return {
+      title: form.title,
+      goal: form.goal,
+      notes: form.notes,
+      status,
+      blocks: [
+        {
+          name: "Bloco 1",
+          order: 0,
+          exercises: form.exerciseName
+            ? [
+                {
+                  name: form.exerciseName,
+                  sets: Number(form.sets),
+                  reps: form.reps,
+                  order: 0,
+                },
+              ]
+            : [],
+        },
+      ],
+    };
+  }
+
+  async function saveForStudent() {
+    if (!form.studentId) {
+      toast("Escolha o aluno para salvar o treino", "error");
+      return;
+    }
     setLoading(true);
     try {
-      const w = await api.createWorkout({
-        title: form.title,
-        goal: form.goal,
-        notes: form.notes,
-        status,
-        blocks: [
-          {
-            name: "Bloco 1",
-            order: 0,
-            exercises: form.exerciseName
-              ? [
-                  {
-                    name: form.exerciseName,
-                    sets: Number(form.sets),
-                    reps: form.reps,
-                    order: 0,
-                  },
-                ]
-              : [],
-          },
-        ],
+      const w = await api.createWorkout(workoutBody("draft"));
+      await api.createAssignments({
+        workoutId: w.id,
+        studentIds: [form.studentId],
+        startDate: new Date().toISOString().slice(0, 10),
       });
-      toast(status === "draft" ? "Rascunho salvo" : "Template salvo");
+      toast("Treino salvo para o aluno");
       router.push(`/treinos/${w.id}`);
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : "Não foi possível salvar o treino", "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saveTemplate() {
+    setLoading(true);
+    try {
+      const w = await api.createWorkout(workoutBody("template"));
+      toast("Template salvo");
+      router.push(`/treinos/${w.id}`);
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : "Não foi possível salvar o treino", "error");
     } finally {
       setLoading(false);
     }
@@ -56,6 +91,18 @@ export default function NovoTreinoPage() {
     <div>
       <PageHeader title="Novo treino" description="Criação manual" />
       <Card className="max-w-2xl space-y-4">
+        <Select
+          label="Aluno"
+          value={form.studentId}
+          onChange={(e) => setForm({ ...form, studentId: e.target.value })}
+        >
+          <option value="">Escolha o aluno</option>
+          {students.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </Select>
         <Input
           label="Nome"
           value={form.title}
@@ -97,19 +144,10 @@ export default function NovoTreinoPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            loading={loading}
-            onClick={() => save("draft")}
-            disabled={!form.title}
-          >
-            Salvar rascunho
+          <Button loading={loading} onClick={saveForStudent} disabled={!form.title}>
+            Salvar para o aluno
           </Button>
-          <Button
-            variant="secondary"
-            loading={loading}
-            onClick={() => save("template")}
-            disabled={!form.title}
-          >
+          <Button variant="secondary" loading={loading} onClick={saveTemplate} disabled={!form.title}>
             Salvar template
           </Button>
           <Link href="/treinos">

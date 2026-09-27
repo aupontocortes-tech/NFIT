@@ -1,79 +1,80 @@
 "use client";
 
-import { Badge, Button, Card, Empty, PageHeader, Skeleton } from "@/components/ui";
+import { Button, Card, Empty, PageHeader, Skeleton } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { EventItem } from "@/lib/mocks";
+import type { Assignment, EventItem } from "@/lib/mocks";
 import { formatDate } from "@/lib/utils";
-import { Dumbbell } from "lucide-react";
+import { Check, Dumbbell } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function AlunoInicioPage() {
-  const [home, setHome] = useState<Awaited<
-    ReturnType<typeof api.getStudentHome>
-  > | null>(null);
+  const [workouts, setWorkouts] = useState<Assignment[] | null>(null);
   const [classes, setClasses] = useState<EventItem[]>([]);
+  const [registered, setRegistered] = useState(false);
 
   useEffect(() => {
-    api.listStudents({ status: "active" }).then(async (r) => {
-      const saved = localStorage.getItem("nfit_aluno_id");
-      const id = r.items.find((s) => s.id === saved)?.id ?? r.items[0]?.id ?? "";
-      if (id) localStorage.setItem("nfit_aluno_id", id);
-      const assigned = id ? await api.listAssignments({ studentId: id }) : [];
-      const active = assigned.find((a) => a.status === "active") ?? null;
-      setHome({
-        todayAssignment: active
-          ? {
-              id: active.id,
-              workoutTitle: active.workoutTitle ?? "Treino",
-              startDate: active.startDate,
-              status: active.status,
-            }
-          : null,
-        nextEvents: [],
-        unreadMessages: 0,
-      });
-      const events = await api.listEvents().catch(() => ({ items: [] as EventItem[] }));
+    const id = localStorage.getItem("nfit_aluno_id") ?? "";
+    if (!id) {
+      setRegistered(false);
+      setWorkouts([]);
+      setClasses([]);
+      return;
+    }
+    setRegistered(true);
+    api.listAssignments({ studentId: id }).then((assigned) => {
+      setWorkouts(assigned.filter((a) => a.status !== "cancelled"));
+    }).catch(() => setWorkouts([]));
+    api.listEvents().then((r) => {
       const now = Date.now();
       setClasses(
-        events.items
-          .filter((e) => e.status !== "cancelled" && new Date(e.startsAt).getTime() >= now)
-          .filter((e) => !id || e.studentId === id)
+        r.items
+          .filter((e) => e.status !== "cancelled" && e.studentId === id && new Date(e.startsAt).getTime() >= now)
           .slice(0, 4),
       );
-    }).catch(() =>
-      setHome({ todayAssignment: null, nextEvents: [], unreadMessages: 0 }),
-    );
+    }).catch(() => setClasses([]));
   }, []);
 
-  if (!home) {
+  if (!workouts) {
     return <Skeleton className="h-48 w-full" />;
   }
 
   return (
     <div>
-      <PageHeader title="Treino de hoje" />
-      {home.todayAssignment ? (
-        <Card className="mb-6">
-          <div className="mb-2 flex items-center gap-2">
-            <Badge tone="active">Ativo</Badge>
-          </div>
-          <h2 className="text-title mb-1">
-            {home.todayAssignment.workoutTitle}
-          </h2>
-          <p className="mb-4 text-caption">
-            Desde {formatDate(home.todayAssignment.startDate)}
-          </p>
-          <Link href={`/aluno/treino/${home.todayAssignment.id}`}>
-            <Button size="lg">Iniciar treino</Button>
-          </Link>
-        </Card>
-      ) : (
+      <PageHeader title="Seus treinos" />
+      {workouts.length === 0 ? (
         <Empty
           icon={Dumbbell}
-          title="Seu personal ainda não liberou um treino"
-          description="Assim que um treino for atribuído, ele aparece aqui."
+          title={registered ? "Seu personal ainda não liberou um treino" : "Faça seu cadastro"}
+          description={
+            registered
+              ? "Quando um treino for salvo para você, ele aparece aqui."
+              : "Use o link que a personal enviou. O cadastro é só seu."
+          }
         />
+      ) : (
+        <ul className="mb-6 space-y-3">
+          {workouts.map((a) => (
+            <li key={a.id}>
+              <Card>
+                <div className="mb-1 flex items-center gap-2">
+                  {a.status === "completed" ? (
+                    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-text-inverse" aria-label="Treino feito">
+                      <Check className="h-5 w-5" />
+                    </span>
+                  ) : null}
+                  <h2 className="text-title">{a.workoutTitle || "Treino"}</h2>
+                </div>
+                <p className="mb-4 text-caption">
+                  {a.status === "completed" ? "Treino feito" : `Desde ${formatDate(a.startDate)}`}
+                </p>
+                <Link href={`/aluno/treino/${a.id}`}>
+                  <Button size="lg">{a.status === "completed" ? "Fazer de novo" : "Iniciar treino"}</Button>
+                </Link>
+              </Card>
+            </li>
+          ))}
+        </ul>
       )}
 
       {classes.length > 0 ? (
@@ -93,12 +94,6 @@ export default function AlunoInicioPage() {
             ))}
           </ul>
         </div>
-      ) : null}
-
-      {home.unreadMessages > 0 ? (
-        <Link href="/aluno/chat" className="mt-4 block text-sm text-brand">
-          Você tem {home.unreadMessages} mensagens não lidas →
-        </Link>
       ) : null}
     </div>
   );

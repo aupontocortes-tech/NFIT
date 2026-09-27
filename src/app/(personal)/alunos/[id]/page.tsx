@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   Empty,
+  Input,
   PageHeader,
   Skeleton,
   TabPanel,
@@ -18,8 +19,16 @@ import type { Assessment, Assignment, Invoice, Student } from "@/lib/mocks";
 import { formatDate, formatMoney } from "@/lib/utils";
 import { Link2 } from "lucide-react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+
+function toDateTimeLocal(iso?: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 function assessmentDate(iso: string) {
   const raw = iso.length === 10 ? `${iso}T12:00:00` : iso;
@@ -35,21 +44,41 @@ const statusTone = {
 export default function AlunoDetalhePage() {
   const { id } = useParams<{ id: string }>();
   const search = useSearchParams();
+  const router = useRouter();
   const { toast } = useToast();
   const [student, setStudent] = useState<Student | null>(null);
   const [tab, setTab] = useState(search.get("aba") === "avaliacoes" ? "avaliacoes" : "overview");
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [nextAt, setNextAt] = useState("");
+  const [issuedCode, setIssuedCode] = useState("");
+  const [eraseCode, setEraseCode] = useState("");
+  const [erasing, setErasing] = useState(false);
 
   useEffect(() => {
-    api.getStudent(id).then(setStudent).catch(() => setStudent(null));
+    api.getStudent(id).then((s) => {
+      setStudent(s);
+      setNextAt(toDateTimeLocal(s.nextAssessmentAt));
+    }).catch(() => setStudent(null));
     api.listAssignments({ studentId: id }).then(setAssignments);
     api.listInvoices().then((r) =>
       setInvoices(r.items.filter((i) => i.studentId === id)),
     );
     api.listAssessments(id).then((r) => setAssessments(r.items));
   }, [id]);
+
+  async function issueCode() {
+    const res = await fetch(`/api/alunos/${id}/apagar`, { method: "POST" });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.code) {
+      toast("Não foi possível gerar o código", "error");
+      return false;
+    }
+    setIssuedCode(data.code);
+    setEraseCode("");
+    return true;
+  }
 
   if (!student) {
     return (
@@ -91,12 +120,16 @@ export default function AlunoDetalhePage() {
 
       <Tabs
         value={tab}
-        onChange={setTab}
+        onChange={(next) => {
+          setTab(next);
+          if (next === "apagar") void issueCode();
+        }}
         tabs={[
           { id: "overview", label: "Visão geral" },
           { id: "treinos", label: "Treinos" },
           { id: "cobrancas", label: "Cobranças" },
           { id: "avaliacoes", label: "Avaliações" },
+          { id: "apagar", label: "Excluir", danger: true },
         ]}
       />
 
@@ -172,6 +205,34 @@ export default function AlunoDetalhePage() {
       </TabPanel>
 
       <TabPanel when="avaliacoes" active={tab}>
+        <Card className="mb-4 max-w-lg space-y-3">
+          <div>
+            <p className="text-sm font-semibold">Próxima avaliação</p>
+            <p className="text-caption">Quando chegar esse horário, o aplicativo do aluno avisa.</p>
+          </div>
+          <Input
+            label="Data e hora"
+            type="datetime-local"
+            value={nextAt}
+            onChange={(e) => setNextAt(e.target.value)}
+          />
+          <Button
+            size="sm"
+            onClick={async () => {
+              try {
+                const updated = await api.patchStudent(id, {
+                  nextAssessmentAt: nextAt ? new Date(nextAt).toISOString() : null,
+                });
+                setStudent(updated);
+                toast("Prazo da próxima avaliação salvo");
+              } catch {
+                toast("Não foi possível salvar o prazo", "error");
+              }
+            }}
+          >
+            Salvar prazo
+          </Button>
+        </Card>
         <div className="mb-3 flex flex-wrap gap-2">
           <Button
             size="sm"
@@ -255,6 +316,79 @@ export default function AlunoDetalhePage() {
             </ul>
           </>
         )}
+      </TabPanel>
+      <TabPanel when="apagar" active={tab}>
+        <Card className="max-w-lg space-y-3 border-error">
+          <div>
+            <p className="text-sm font-semibold">Excluir este aluno</p>
+            <p className="text-caption">
+              Some da lista, junto com treinos, avaliação, agenda e mensagens deste cadastro. Copie o código e cole para confirmar.
+            </p>
+          </div>
+          <div className="flex items-center justify-between gap-2 rounded-[var(--radius-md)] border border-border bg-bg px-3 py-2">
+            <p className="font-mono text-base font-semibold tracking-wider">{issuedCode || "…"}</p>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={!issuedCode}
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(issuedCode);
+                  toast("Código copiado. Cole no campo abaixo.");
+                } catch {
+                  toast("Selecione o código e copie.", "error");
+                }
+              }}
+            >
+              Copiar
+            </Button>
+          </div>
+          <Input
+            label="Cole o código aqui"
+            value={eraseCode}
+            onChange={(e) => setEraseCode(e.target.value)}
+            autoComplete="off"
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="danger"
+              loading={erasing}
+              disabled={!issuedCode || eraseCode.trim().toUpperCase() !== issuedCode}
+              onClick={async () => {
+                setErasing(true);
+                try {
+                  const res = await fetch(`/api/alunos/${id}`, {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ code: eraseCode.trim() }),
+                  });
+                  const data = await res.json().catch(() => null);
+                  if (!res.ok) {
+                    toast(data?.error?.message ?? "Não foi possível apagar o aluno", "error");
+                    return;
+                  }
+                  toast("Aluno apagado");
+                  router.push("/alunos");
+                } finally {
+                  setErasing(false);
+                }
+              }}
+            >
+              Confirmar e apagar
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={async () => {
+                const ok = await issueCode();
+                if (ok) toast("Código novo. O anterior não vale mais.");
+              }}
+            >
+              Gerar outro
+            </Button>
+          </div>
+        </Card>
       </TabPanel>
     </div>
   );

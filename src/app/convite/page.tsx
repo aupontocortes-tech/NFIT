@@ -4,7 +4,7 @@ import { AppName } from "@/components/ui/AppName";
 import { Button, Card, Input, Textarea } from "@/components/ui";
 import { hasErrors, validateStudent } from "@/lib/validators";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function ConvitePage() {
   const router = useRouter();
@@ -18,6 +18,10 @@ export default function ConvitePage() {
     notes: "",
   });
   const errors = submitted ? validateStudent(form) : {};
+
+  useEffect(() => {
+    localStorage.removeItem("nfit_aluno_id");
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();

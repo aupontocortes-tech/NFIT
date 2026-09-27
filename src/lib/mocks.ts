@@ -23,6 +23,7 @@ export interface Student {
   notes?: string;
   status: StudentStatus;
   avatarUrl?: string | null;
+  nextAssessmentAt?: string | null;
   createdAt: string;
   activeWorkoutCount?: number;
   pendingInvoices?: number;

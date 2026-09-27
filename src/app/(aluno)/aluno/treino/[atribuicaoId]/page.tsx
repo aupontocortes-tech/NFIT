@@ -2,7 +2,7 @@
 
 import { Button, Card, Input, PageHeader, Skeleton } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import type { Assignment } from "@/lib/mocks";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
@@ -66,6 +66,8 @@ export default function ExecutarTreinoPage() {
       });
       toast("Treino concluído");
       router.push(`/aluno/treino/${atribuicaoId}/resumo`);
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : "Não foi possível concluir o treino", "error");
     } finally {
       setFinishing(false);
     }

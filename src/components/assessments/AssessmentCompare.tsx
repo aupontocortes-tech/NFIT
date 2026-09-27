@@ -30,26 +30,20 @@ export function AssessmentCompare({ items }: { items: Assessment[] }) {
   const ordered = [...items].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const first = ordered[0];
 
-  if (!first || ordered.length < 2) {
-    return (
-      <Card className="mb-4">
-        <p className="font-medium">Comparar avaliações</p>
-        <p className="mt-1 text-body-sm text-text-muted">
-          A partir da segunda avaliação, as fotos ficam alinhadas e a diferença de peso, cintura e quadril aparece em relação à primeira.
-        </p>
-      </Card>
-    );
-  }
+  if (!first) return null;
 
   return (
     <Card className="mb-4 space-y-5">
       <div>
         <p className="font-medium">Comparar avaliações</p>
         <p className="mt-1 text-body-sm text-text-muted">
-          Da mais antiga para a mais recente. A coluna Dif. é a diferença em relação à primeira.
+          {ordered.length < 2
+            ? "As fotos de cada avaliação ficam uma ao lado da outra. A diferença aparece a partir da segunda."
+            : "Da mais antiga para a mais recente. A coluna Dif. é a diferença em relação à primeira."}
         </p>
       </div>
 
+      {ordered.length >= 2 ? (
       <div className="overflow-x-auto">
         <table className="w-full min-w-[32rem] text-left text-sm">
           <thead>
@@ -78,6 +72,7 @@ export function AssessmentCompare({ items }: { items: Assessment[] }) {
           </tbody>
         </table>
       </div>
+      ) : null}
 
       <div className="space-y-4">
         {POSES.map((label, index) => (

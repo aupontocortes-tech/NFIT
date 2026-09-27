@@ -557,6 +557,7 @@ export const api = {
         notes: data.notes,
         status: data.status,
         avatarUrl: data.avatarUrl,
+        nextAssessmentAt: data.nextAssessmentAt,
       }),
     });
     const body = await res.json().catch(() => null);
@@ -727,15 +728,13 @@ export const api = {
     return this.getAssignment(id);
   },
 
-  async completeSession(assignmentId: string, payload: unknown) {
-    if (USE_MOCK) {
-      await delay();
-      return { sessionId: `sess-${Date.now()}`, status: "completed" as const };
+  async completeSession(assignmentId: string, _payload: unknown) {
+    const res = await fetch(`/api/treinos/atribuicoes/${assignmentId}`, { method: "POST" });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new ApiError(data?.error?.message ?? "Não foi possível concluir o treino", res.status);
     }
-    return request<{ sessionId: string; status: "completed" }>(
-      `/student/assignments/${assignmentId}/sessions`,
-      { method: "POST", body: payload },
-    );
+    return data as { sessionId: string; status: "completed" };
   },
 
   /** Dados de PIX do personal, para o aluno pagar. */

@@ -10,32 +10,39 @@ function db() {
 let ready: Promise<void> | null = null;
 
 function ensureTables() {
-  ready ??= (async () => {
-    const sql = db();
-    await sql`
-      CREATE TABLE IF NOT EXISTS nfit_workouts (
-        id text PRIMARY KEY,
-        title text NOT NULL,
-        goal text,
-        status text NOT NULL,
-        generated_by_ai boolean NOT NULL DEFAULT false,
-        notes text,
-        warnings text NOT NULL DEFAULT '[]',
-        blocks text NOT NULL DEFAULT '[]',
-        updated_at timestamptz NOT NULL DEFAULT now()
-      )
-    `;
-    await sql`
-      CREATE TABLE IF NOT EXISTS nfit_assignments (
-        id text PRIMARY KEY,
-        workout_id text NOT NULL,
-        student_id text NOT NULL,
-        status text NOT NULL DEFAULT 'active',
-        start_date text NOT NULL,
-        notes text
-      )
-    `;
-  })();
+  if (!ready) {
+    ready = (async () => {
+      try {
+        const sql = db();
+        await sql`
+          CREATE TABLE IF NOT EXISTS nfit_workouts (
+            id text PRIMARY KEY,
+            title text NOT NULL,
+            goal text,
+            status text NOT NULL,
+            generated_by_ai boolean NOT NULL DEFAULT false,
+            notes text,
+            warnings text NOT NULL DEFAULT '[]',
+            blocks text NOT NULL DEFAULT '[]',
+            updated_at timestamptz NOT NULL DEFAULT now()
+          )
+        `;
+        await sql`
+          CREATE TABLE IF NOT EXISTS nfit_assignments (
+            id text PRIMARY KEY,
+            workout_id text NOT NULL,
+            student_id text NOT NULL,
+            status text NOT NULL DEFAULT 'active',
+            start_date text NOT NULL,
+            notes text
+          )
+        `;
+      } catch (e) {
+        ready = null;
+        throw e;
+      }
+    })();
+  }
   return ready;
 }
 
@@ -147,6 +154,14 @@ export async function createAssignments(input: {
     });
   }
   return created;
+}
+
+export async function completeAssignment(id: string): Promise<Assignment | null> {
+  await ensureTables();
+  const current = await getAssignment(id);
+  if (!current) return null;
+  await db()`UPDATE nfit_assignments SET status = ${"completed"} WHERE id = ${id}`;
+  return { ...current, status: "completed" };
 }
 
 export async function listAssignments(studentId?: string): Promise<Assignment[]> {

@@ -2,10 +2,10 @@
 
 import { AppName } from "@/components/ui/AppName";
 import { api } from "@/lib/api";
-import type { Student } from "@/lib/mocks";
 import { cn } from "@/lib/utils";
 import {
   Calendar,
+  ClipboardList,
   Dumbbell,
   LineChart,
   MessageCircle,
@@ -20,24 +20,39 @@ const nav = [
   { href: "/aluno/agenda", label: "Agenda", icon: Calendar, color: "#eab308" },
   { href: "/aluno/chat", label: "Chat", icon: MessageCircle, color: "#06b6d4" },
   { href: "/aluno/evolucao", label: "Evolução", icon: LineChart, color: "#a855f7" },
+  { href: "/aluno/avaliacao", label: "Avaliação", icon: ClipboardList, color: "#e50914" },
   { href: "/aluno/perfil", label: "Perfil", icon: User, color: "#22c55e" },
 ];
 
 export function AlunoShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [students, setStudents] = useState<Student[]>([]);
-  const [alunoId, setAlunoId] = useState("");
+  const [name, setName] = useState("");
+  const [due, setDue] = useState("");
   const isExecution =
     /\/aluno\/treino\/[^/]+$/.test(pathname) && !pathname.includes("/resumo");
 
   useEffect(() => {
-    api.listStudents({ status: "active" }).then((r) => {
-      setStudents(r.items);
-      const saved = localStorage.getItem("nfit_aluno_id");
-      const id = r.items.find((s) => s.id === saved)?.id ?? r.items[0]?.id ?? "";
-      if (id) localStorage.setItem("nfit_aluno_id", id);
-      setAlunoId(id);
-    }).catch(() => setStudents([]));
+    const id = localStorage.getItem("nfit_aluno_id");
+    if (!id) return;
+    api.getStudent(id).then((s) => {
+      setName(s.name.split(/\s+/)[0] || s.name);
+      if (s.nextAssessmentAt && new Date(s.nextAssessmentAt).getTime() <= Date.now()) {
+        setDue(s.nextAssessmentAt);
+        const key = `nfit_eval_alert_${s.id}_${s.nextAssessmentAt}`;
+        if (typeof Notification !== "undefined" && !localStorage.getItem(key)) {
+          const show = () => {
+            new Notification("NFIT", { body: "Está na hora da sua avaliação física." });
+            localStorage.setItem(key, "1");
+          };
+          if (Notification.permission === "granted") show();
+          else if (Notification.permission === "default") {
+            Notification.requestPermission().then((p) => {
+              if (p === "granted") show();
+            });
+          }
+        }
+      }
+    }).catch(() => setName(""));
   }, []);
 
   return (
@@ -45,26 +60,15 @@ export function AlunoShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 py-3 backdrop-blur">
         <div>
           <AppName />
-          <p className="text-caption">Área do aluno</p>
-          {students.length > 1 ? (
-            <select
-              className="mt-1 h-9 rounded-[var(--radius-md)] border border-border bg-surface px-2 text-sm"
-              value={alunoId}
-              onChange={(e) => {
-                localStorage.setItem("nfit_aluno_id", e.target.value);
-                setAlunoId(e.target.value);
-                window.location.reload();
-              }}
-            >
-              {students.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          ) : null}
+          <p className="text-caption">{name ? `Olá, ${name}` : "Área do aluno"}</p>
         </div>
       </header>
+      {due ? (
+        <div className="border-b border-brand bg-brand px-4 py-3 text-sm font-semibold text-text-inverse">
+          Está na hora da sua avaliação física. A personal marcou este horário:{" "}
+          {new Date(due).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}.
+        </div>
+      ) : null}
       <main
         className={cn(
           "mx-auto w-full max-w-lg px-4 py-6",

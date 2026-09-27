@@ -10,7 +10,7 @@ import {
   Textarea,
 } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { aiDraftFixture, type Student, type Workout } from "@/lib/mocks";
 import { AlertTriangle, Sparkles } from "lucide-react";
 import Link from "next/link";
@@ -25,6 +25,7 @@ export default function RascunhoIaPage() {
   const [saving, setSaving] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
+  const [studentId, setStudentId] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [startDate, setStartDate] = useState(
     new Date().toISOString().slice(0, 10),
@@ -36,9 +37,13 @@ export default function RascunhoIaPage() {
       try {
         const raw = sessionStorage.getItem("ai-draft");
         if (raw) {
-          const parsed = JSON.parse(raw) as { draftId: string; workout: Workout };
+          const parsed = JSON.parse(raw) as { draftId: string; workout: Workout; studentId?: string };
           setDraftId(parsed.draftId);
           setWorkout(parsed.workout);
+          if (parsed.studentId) {
+            setStudentId(parsed.studentId);
+            setSelected([parsed.studentId]);
+          }
         }
       } catch {
         /* keep fixture */
@@ -73,8 +78,11 @@ export default function RascunhoIaPage() {
     }
   }
 
-  async function confirmAssign() {
-    if (selected.length === 0) return;
+  async function saveForStudent(ids: string[]) {
+    if (ids.length === 0) {
+      setAssignOpen(true);
+      return;
+    }
     setSaving(true);
     try {
       const payload = { ...workout, status: "draft" as const, generatedByAi: true };
@@ -84,12 +92,14 @@ export default function RascunhoIaPage() {
           : await api.createWorkout(payload);
       await api.createAssignments({
         workoutId: w.id,
-        studentIds: selected,
+        studentIds: ids,
         startDate,
       });
-      toast("Treino salvo e atribuído");
+      toast("Treino salvo para o aluno");
       setAssignOpen(false);
       router.push(`/treinos/${w.id}`);
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : "Não foi possível salvar o treino", "error");
     } finally {
       setSaving(false);
     }
@@ -206,8 +216,8 @@ export default function RascunhoIaPage() {
         <Button variant="secondary" loading={saving} onClick={saveDraft}>
           Salvar rascunho
         </Button>
-        <Button loading={saving} onClick={() => setAssignOpen(true)}>
-          Salvar e atribuir
+        <Button loading={saving} onClick={() => saveForStudent(selected.length ? selected : studentId ? [studentId] : [])}>
+          Salvar para o aluno
         </Button>
         <Link href="/treinos/gerar">
           <Button variant="ghost">Voltar</Button>
@@ -226,7 +236,7 @@ export default function RascunhoIaPage() {
             <Button
               loading={saving}
               disabled={selected.length === 0}
-              onClick={confirmAssign}
+              onClick={() => saveForStudent(selected)}
             >
               Confirmar
             </Button>
@@ -234,7 +244,7 @@ export default function RascunhoIaPage() {
         }
       >
         <p className="mb-4 text-body-sm text-text-muted">
-          O treino só fica ativo para o aluno após esta confirmação.
+          Escolha o aluno. O treino fica na área dele.
         </p>
         <Input
           label="Data de início"

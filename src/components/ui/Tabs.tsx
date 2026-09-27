@@ -9,7 +9,7 @@ export function Tabs({
   onChange,
   className,
 }: {
-  tabs: { id: string; label: string }[];
+  tabs: { id: string; label: string; danger?: boolean }[];
   value: string;
   onChange: (id: string) => void;
   className?: string;
@@ -32,8 +32,12 @@ export function Tabs({
           className={cn(
             "shrink-0 px-3 py-2.5 text-sm font-medium transition border-b-2 -mb-px",
             value === t.id
-              ? "border-brand text-brand"
-              : "border-transparent text-text-muted hover:text-text",
+              ? t.danger
+                ? "border-error text-error"
+                : "border-brand text-brand"
+              : t.danger
+                ? "border-transparent text-error hover:text-error"
+                : "border-transparent text-text-muted hover:text-text",
           )}
         >
           {t.label}

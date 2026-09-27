@@ -52,6 +52,12 @@ export default function AlunoPerfilPage() {
       <div className="mb-6 flex justify-center">
         <Avatar name={student?.name ?? ""} src={photo[0]} size="lg" />
       </div>
+      <Card className="mb-4 space-y-2">
+        <p className="font-medium">{student?.name || "Seu cadastro"}</p>
+        {student?.email ? <p className="text-sm text-text-muted">{student.email}</p> : null}
+        {student?.phone ? <p className="text-sm text-text-muted">{student.phone}</p> : null}
+        {student?.notes ? <p className="text-sm">{student.notes}</p> : null}
+      </Card>
       <Card className="mb-4 space-y-4">
         <p className="text-sm text-text-muted">A foto é opcional. Pode tirar agora ou escolher uma que já tem.</p>
         <PhotoPicker
