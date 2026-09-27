@@ -9,7 +9,7 @@ export function Tabs({
   onChange,
   className,
 }: {
-  tabs: { id: string; label: string; danger?: boolean }[];
+  tabs: { id: string; label: string; tone?: "danger" | "link" }[];
   value: string;
   onChange: (id: string) => void;
   className?: string;
@@ -32,12 +32,16 @@ export function Tabs({
           className={cn(
             "shrink-0 px-3 py-2.5 text-sm font-medium transition border-b-2 -mb-px",
             value === t.id
-              ? t.danger
+              ? t.tone === "danger"
                 ? "border-error text-error"
-                : "border-brand text-brand"
-              : t.danger
-                ? "border-transparent text-error hover:text-error"
-                : "border-transparent text-text-muted hover:text-text",
+                : t.tone === "link"
+                  ? "border-[#3b82f6] text-[#3b82f6]"
+                  : "border-brand text-brand"
+              : t.tone === "danger"
+                ? "border-transparent text-error"
+                : t.tone === "link"
+                  ? "border-transparent text-[#3b82f6]"
+                  : "border-transparent text-text-muted hover:text-text",
           )}
         >
           {t.label}

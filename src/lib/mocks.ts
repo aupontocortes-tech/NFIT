@@ -88,7 +88,7 @@ export interface EventItem {
   location?: string;
   meetingUrl?: string;
   notes?: string;
-  status?: "scheduled" | "rescheduled" | "cancelled";
+  status?: "scheduled" | "rescheduled" | "cancelled" | "given";
 }
 
 export interface Conversation {

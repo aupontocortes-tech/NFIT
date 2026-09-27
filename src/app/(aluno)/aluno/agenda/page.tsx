@@ -20,7 +20,7 @@ export default function AlunoAgendaPage() {
 
   return (
     <div>
-      <PageHeader title="Minhas aulas" description="Dia, semana e mês" />
+      <PageHeader title="Minhas aulas" description="Os dias em que a personal dá aula presencial para você" />
       {!items ? <Skeleton className="h-80 w-full" /> : <ClassCalendar events={mine} readOnly />}
     </div>
   );

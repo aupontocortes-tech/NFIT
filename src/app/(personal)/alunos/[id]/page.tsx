@@ -55,6 +55,7 @@ export default function AlunoDetalhePage() {
   const [issuedCode, setIssuedCode] = useState("");
   const [eraseCode, setEraseCode] = useState("");
   const [erasing, setErasing] = useState(false);
+  const [appUrl, setAppUrl] = useState("");
 
   useEffect(() => {
     api.getStudent(id).then((s) => {
@@ -78,6 +79,16 @@ export default function AlunoDetalhePage() {
     setIssuedCode(data.code);
     setEraseCode("");
     return true;
+  }
+
+  async function loadAppLink() {
+    const res = await fetch(`/api/alunos/${id}/link`, { method: "POST" });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.token) {
+      toast("Não foi possível criar o link do aplicativo", "error");
+      return;
+    }
+    setAppUrl(`${window.location.origin}/entrar/${data.token}`);
   }
 
   if (!student) {
@@ -123,13 +134,15 @@ export default function AlunoDetalhePage() {
         onChange={(next) => {
           setTab(next);
           if (next === "apagar") void issueCode();
+          if (next === "app") void loadAppLink();
         }}
         tabs={[
           { id: "overview", label: "Visão geral" },
           { id: "treinos", label: "Treinos" },
           { id: "cobrancas", label: "Cobranças" },
           { id: "avaliacoes", label: "Avaliações" },
-          { id: "apagar", label: "Excluir", danger: true },
+          { id: "apagar", label: "Excluir", tone: "danger" },
+          { id: "app", label: "App", tone: "link" },
         ]}
       />
 
@@ -388,6 +401,32 @@ export default function AlunoDetalhePage() {
               Gerar outro
             </Button>
           </div>
+        </Card>
+      </TabPanel>
+      <TabPanel when="app" active={tab}>
+        <Card className="max-w-lg space-y-3">
+          <div>
+            <p className="text-sm font-semibold">Aplicativo deste cliente</p>
+            <p className="text-caption">
+              Cada cliente tem o próprio link. Se ainda não baixou no celular, envie este. Abre só o aplicativo dele: treinos, avaliação, fotos e agenda. Depois ele entra com login e senha.
+            </p>
+          </div>
+          <p className="break-all rounded-[var(--radius-md)] border border-border bg-bg px-3 py-2 text-sm">{appUrl || "Gerando o link…"}</p>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!appUrl}
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(appUrl);
+                toast("Link do aplicativo copiado.");
+              } catch {
+                toast("Selecione o link e copie.", "error");
+              }
+            }}
+          >
+            Copiar link
+          </Button>
         </Card>
       </TabPanel>
     </div>

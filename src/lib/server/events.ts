@@ -45,7 +45,10 @@ function iso(v: string | Date) {
 }
 
 function mapRow(row: Row): EventItem {
-  const status = row.status === "rescheduled" || row.status === "cancelled" ? row.status : "scheduled";
+  const status =
+    row.status === "rescheduled" || row.status === "cancelled" || row.status === "given"
+      ? row.status
+      : "scheduled";
   return {
     id: row.id,
     studentId: row.student_id,

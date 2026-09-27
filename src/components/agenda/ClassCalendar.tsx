@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui";
 import type { EventItem } from "@/lib/mocks";
 import { cn } from "@/lib/utils";
-import { useMemo, useState } from "react";
+import { Check } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 
 type View = "day" | "week" | "month";
 
@@ -32,6 +33,18 @@ function sameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
+const STUDENT_COLORS = ["#3b82f6", "#22c55e", "#f97316", "#eab308", "#06b6d4", "#a855f7", "#ec4899", "#14b8a6"];
+
+function colorFor(name: string) {
+  let n = 0;
+  for (const char of name) n = (n + char.charCodeAt(0) * 17) % STUDENT_COLORS.length;
+  return STUDENT_COLORS[n];
+}
+
+function firstName(name: string) {
+  return name.trim().split(/\s+/)[0] || name;
+}
+
 function timeLabel(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
@@ -50,17 +63,24 @@ export function ClassCalendar({
   events,
   readOnly,
   onCreateDay,
+  onCreateHour,
   onMove,
+  onAdjust,
+  onGive,
 }: {
   events: EventItem[];
   readOnly?: boolean;
   onCreateDay?: (day: Date) => void;
+  onCreateHour?: (start: Date) => void;
   onMove?: (event: EventItem, startsAt: Date, endsAt: Date) => Promise<void>;
+  onAdjust?: (event: EventItem) => void;
+  onGive?: (event: EventItem) => void;
 }) {
   const [cursor, setCursor] = useState(() => startOfDay(new Date()));
   const [view, setView] = useState<View>("week");
-  const [moving, setMoving] = useState<EventItem | null>(null);
   const [busy, setBusy] = useState(false);
+  const [ghost, setGhost] = useState<string | null>(null);
+  const dragId = useRef<string | null>(null);
 
   const visible = useMemo(() => events.filter((e) => e.status !== "cancelled"), [events]);
 
@@ -83,24 +103,50 @@ export function ClassCalendar({
       .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   }
 
-  async function dropOn(day: Date) {
-    if (!moving || !onMove) {
-      onCreateDay?.(day);
-      return;
-    }
-    const from = new Date(moving.startsAt);
-    const to = new Date(moving.endsAt);
+  function openEmpty(day: Date, hour?: number) {
+    if (hour != null) onCreateHour?.(shift(day, hour, 0));
+    else onCreateDay?.(day);
+  }
+
+  function dayKey(day: Date) {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}`;
+  }
+
+  function parseDayKey(key: string) {
+    const [year, month, date] = key.split("-").map(Number);
+    return new Date(year, month - 1, date);
+  }
+
+  async function relocate(event: EventItem, day: Date, hour?: number) {
+    if (!onMove) return;
+    const from = new Date(event.startsAt);
+    const to = new Date(event.endsAt);
     const duration = Math.max(to.getTime() - from.getTime(), 60 * 60 * 1000);
-    const next = shift(day, from.getHours(), from.getMinutes());
+    const next = hour != null ? shift(day, hour, from.getMinutes()) : shift(day, from.getHours(), from.getMinutes());
+    if (sameDay(next, from) && next.getHours() === from.getHours() && next.getMinutes() === from.getMinutes()) return;
     const end = new Date(next.getTime() + duration);
     setBusy(true);
     try {
-      await onMove(moving, next, end);
-      setMoving(null);
-      setCursor(startOfDay(day));
+      await onMove(event, next, end);
     } finally {
       setBusy(false);
+      setGhost(null);
+      dragId.current = null;
     }
+  }
+
+  function eventById(id: string) {
+    return visible.find((item) => item.id === id) ?? null;
+  }
+
+  function dropOn(e: React.DragEvent, day: Date, hour?: number) {
+    e.preventDefault();
+    e.stopPropagation();
+    const event = eventById(e.dataTransfer.getData("text/plain") || dragId.current || "");
+    setGhost(null);
+    if (!event) return;
+    void relocate(event, day, hour);
   }
 
   const week = Array.from({ length: 7 }, (_, i) => addDays(mondayOf(cursor), i));
@@ -108,23 +154,56 @@ export function ClassCalendar({
   const monthCells = Array.from({ length: 42 }, (_, i) => addDays(monthStart, i));
 
   function Chip({ event }: { event: EventItem }) {
-    const selected = moving?.id === event.id;
+    const given = event.status === "given";
     return (
-      <button
-        type="button"
-        disabled={readOnly || busy}
-        onClick={(ev) => {
-          ev.stopPropagation();
-          if (readOnly) return;
-          setMoving(selected ? null : event);
-        }}
-        className={cn(
-          "w-full truncate rounded-[var(--radius-sm)] px-1.5 py-1 text-left text-xs font-medium",
-          selected ? "bg-brand text-text-inverse" : "bg-fill text-text",
-        )}
-      >
-        {timeLabel(event.startsAt)} {event.studentName}
-      </button>
+      <div className="flex items-stretch gap-0.5" onClick={(ev) => ev.stopPropagation()}>
+        <button
+          type="button"
+          disabled={readOnly || busy}
+          draggable={!readOnly && !busy}
+          onDragStart={(ev) => {
+            ev.stopPropagation();
+            dragId.current = event.id;
+            ev.dataTransfer.setData("text/plain", event.id);
+            ev.dataTransfer.effectAllowed = "move";
+          }}
+          onDragEnd={() => {
+            dragId.current = null;
+            setGhost(null);
+          }}
+          onDragOver={(ev) => ev.preventDefault()}
+          onDoubleClick={(ev) => {
+            ev.stopPropagation();
+            ev.preventDefault();
+            if (!readOnly) onAdjust?.(event);
+          }}
+          className={cn(
+            "min-w-0 flex-1 cursor-grab truncate rounded-[var(--radius-sm)] border px-1.5 py-1 text-left text-xs font-semibold active:cursor-grabbing",
+            given && "line-through opacity-80",
+          )}
+          style={{ backgroundColor: `${colorFor(event.studentName)}33`, borderColor: colorFor(event.studentName), color: colorFor(event.studentName) }}
+        >
+          {timeLabel(event.startsAt)} {firstName(event.studentName)}
+          {given ? " · dada" : ""}
+        </button>
+        {!readOnly ? (
+          <button
+            type="button"
+            aria-label={given ? "Desfazer aula dada" : "Marcar aula como dada"}
+            aria-pressed={given}
+            onClick={(ev) => {
+              ev.stopPropagation();
+              onGive?.(event);
+            }}
+            className={cn(
+              "inline-flex w-6 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border",
+              given ? "border-brand bg-brand text-text-inverse" : "border-border text-text-muted",
+            )}
+          >
+            <Check className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
+      </div>
     );
   }
 
@@ -164,13 +243,9 @@ export function ClassCalendar({
         </div>
       </div>
 
-      {moving ? (
-        <p className="mb-3 rounded-[var(--radius-md)] bg-brand-muted px-3 py-2 text-sm text-brand-hover">
-          Remarcando a aula de {moving.studentName}. Toque no novo dia. O horário {timeLabel(moving.startsAt)} permanece.
-        </p>
-      ) : !readOnly ? (
+      {!readOnly ? (
         <p className="mb-3 text-sm text-text-muted">
-          Toque numa aula para remarcar, ou num dia vazio para marcar outra.
+          Segure a aula e leve até outro dia. Dois cliques mudam a hora. O visto marca a aula como dada, mesmo se o aluno faltar sem avisar.
         </p>
       ) : null}
 
@@ -184,17 +259,26 @@ export function ClassCalendar({
           {monthCells.map((day) => {
             const inMonth = day.getMonth() === cursor.getMonth();
             const list = eventsOn(day);
+            const tone = list[0] ? colorFor(list[0].studentName) : undefined;
             return (
               <div
                 key={day.toISOString()}
-                onClick={() => dropOn(day)}
+                data-day={dayKey(day)}
+                onClick={() => openEmpty(day)}
+                onDragOver={(ev) => {
+                  ev.preventDefault();
+                  setGhost(dayKey(day));
+                }}
+                onDrop={(ev) => dropOn(ev, day)}
                 className={cn(
-                  "min-h-24 cursor-pointer rounded-[var(--radius-md)] border border-border p-1 text-left",
-                  inMonth ? "bg-surface" : "opacity-40",
+                  "min-h-24 cursor-pointer rounded-[var(--radius-md)] border bg-[#efe8dc] p-1 text-left dark:bg-[#2a2a2a]",
+                  !tone && "border-border",
                   sameDay(day, new Date()) && "ring-1 ring-brand",
+                  ghost === dayKey(day) && "ring-2 ring-brand",
                 )}
+                style={tone ? { borderColor: tone } : undefined}
               >
-                <span className="text-xs font-semibold">{day.getDate()}</span>
+                <span className={cn("text-xs font-semibold", !inMonth && "opacity-45")}>{day.getDate()}</span>
                 <div className="mt-1 space-y-1">
                   {list.slice(0, 3).map((e) => (
                     <Chip key={e.id} event={e} />
@@ -212,10 +296,17 @@ export function ClassCalendar({
           {week.map((day) => (
             <div
               key={day.toISOString()}
-              onClick={() => dropOn(day)}
+              data-day={dayKey(day)}
+              onClick={() => openEmpty(day)}
+              onDragOver={(ev) => {
+                ev.preventDefault();
+                setGhost(dayKey(day));
+              }}
+              onDrop={(ev) => dropOn(ev, day)}
               className={cn(
-                "min-h-40 cursor-pointer rounded-[var(--radius-md)] border border-border p-2 text-left",
+                "min-h-40 cursor-pointer rounded-[var(--radius-md)] border border-border bg-[#efe8dc] p-2 text-left dark:bg-[#2a2a2a]",
                 sameDay(day, new Date()) && "ring-1 ring-brand",
+                ghost === dayKey(day) && "ring-2 ring-brand",
               )}
             >
               <p className="text-sm font-semibold">
@@ -232,27 +323,36 @@ export function ClassCalendar({
       ) : null}
 
       {view === "day" ? (
-        <div className="space-y-2">
-          {eventsOn(cursor).length === 0 ? (
-            <button
-              type="button"
-              onClick={() => dropOn(cursor)}
-              className="w-full rounded-[var(--radius-md)] border border-border px-4 py-8 text-text-muted"
-            >
-              Nenhuma aula neste dia.
-            </button>
-          ) : (
-            eventsOn(cursor).map((e) => (
-              <div key={e.id} className="rounded-[var(--radius-md)] border border-border p-3">
-                <Chip event={e} />
-                <p className="mt-2 font-medium">{e.title}</p>
-                <p className="text-caption">
-                  {timeLabel(e.startsAt)} – {timeLabel(e.endsAt)}
-                  {e.status === "rescheduled" ? " · Remarcada" : ""}
-                </p>
+        <div className="space-y-1">
+          {Array.from({ length: 16 }, (_, i) => i + 6).map((hour) => {
+            const list = eventsOn(cursor).filter((e) => new Date(e.startsAt).getHours() === hour);
+            const label = `${String(hour).padStart(2, "0")}:00`;
+            const tone = list[0] ? colorFor(list[0].studentName) : undefined;
+            return (
+              <div
+                key={hour}
+                data-day={dayKey(cursor)}
+                data-hour={hour}
+                onClick={() => openEmpty(cursor, hour)}
+                onDragOver={(ev) => {
+                  ev.preventDefault();
+                  setGhost(dayKey(cursor));
+                }}
+                onDrop={(ev) => dropOn(ev, cursor, hour)}
+                className="flex w-full items-start gap-3 rounded-[var(--radius-md)] border border-border bg-[#efe8dc] px-3 py-2 text-left dark:bg-[#2a2a2a]"
+                style={tone ? { borderColor: tone } : undefined}
+              >
+                <span className="w-12 shrink-0 pt-1 text-sm font-semibold tabular-nums">{label}</span>
+                <span className="min-w-0 flex-1 space-y-1">
+                  {list.length === 0 ? (
+                    <span className="text-sm text-text-muted">Livre · 1 hora</span>
+                  ) : (
+                    list.map((e) => <Chip key={e.id} event={e} />)
+                  )}
+                </span>
               </div>
-            ))
-          )}
+            );
+          })}
         </div>
       ) : null}
     </div>
