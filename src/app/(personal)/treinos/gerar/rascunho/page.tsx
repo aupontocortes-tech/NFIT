@@ -10,6 +10,7 @@ import {
   Textarea,
 } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
+import { ExerciseGif } from "@/components/workouts/ExerciseGif";
 import { api, ApiError } from "@/lib/api";
 import { aiDraftFixture, type Student, type Workout } from "@/lib/mocks";
 import { AlertTriangle, Sparkles } from "lucide-react";
@@ -174,34 +175,39 @@ export default function RascunhoIaPage() {
                 key={ei}
                 className="rounded-[var(--radius-md)] border border-border p-3"
               >
-                <Input
-                  label="Exercício"
-                  value={ex.name}
-                  onChange={(e) => {
-                    const blocks = [...workout.blocks];
-                    blocks[bi] = {
-                      ...block,
-                      exercises: block.exercises.map((x, i) =>
-                        i === ei ? { ...x, name: e.target.value } : x,
-                      ),
-                    };
-                    setWorkout({ ...workout, blocks });
-                  }}
-                />
-                <p className="mt-2 text-caption tabular-nums">
-                  {ex.sets}×{ex.reps}
-                  {ex.intensity ? ` · ${ex.intensity}` : ex.load ? ` · ${ex.load}` : ""}
-                  {ex.restSeconds ? ` · ${ex.restSeconds}s` : ""}
-                </p>
-                {ex.notes ? (
-                  <p className="mt-1 text-sm text-text-muted">{ex.notes}</p>
-                ) : null}
-                {ex.alternatives && ex.alternatives.length > 0 ? (
-                  <p className="mt-1 text-sm text-text-muted">
-                    <span className="font-semibold text-text">Alternativas: </span>
-                    {ex.alternatives.join(" · ")}
-                  </p>
-                ) : null}
+                <div className="flex items-start gap-3">
+                  <ExerciseGif name={ex.name} size="md" />
+                  <div className="min-w-0 flex-1">
+                    <Input
+                      label="Exercício"
+                      value={ex.name}
+                      onChange={(e) => {
+                        const blocks = [...workout.blocks];
+                        blocks[bi] = {
+                          ...block,
+                          exercises: block.exercises.map((x, i) =>
+                            i === ei ? { ...x, name: e.target.value } : x,
+                          ),
+                        };
+                        setWorkout({ ...workout, blocks });
+                      }}
+                    />
+                    <p className="mt-2 text-caption tabular-nums">
+                      {ex.sets}×{ex.reps}
+                      {ex.intensity ? ` · ${ex.intensity}` : ex.load ? ` · ${ex.load}` : ""}
+                      {ex.restSeconds ? ` · ${ex.restSeconds}s` : ""}
+                    </p>
+                    {ex.notes ? (
+                      <p className="mt-1 text-sm text-text-muted">{ex.notes}</p>
+                    ) : null}
+                    {ex.alternatives && ex.alternatives.length > 0 ? (
+                      <p className="mt-1 text-sm text-text-muted">
+                        <span className="font-semibold text-text">Alternativas: </span>
+                        {ex.alternatives.join(" · ")}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
               </li>
             ))}
           </ul>
