@@ -11,11 +11,26 @@ export async function GET(request: Request) {
   const session = await currentSession(request);
   const denied = requirePersonal(session);
   if (denied) return denied;
-  const accounts = await listPersonalAccounts();
-  return Response.json({
-    items: accounts.map((a) => ({ email: a.email, name: a.name ?? null })),
-    me: session && session.role === "personal" ? session.email ?? null : null,
-  });
+  try {
+    const accounts = await listPersonalAccounts();
+    return Response.json({
+      items: accounts.map((a) => ({ email: a.email, name: a.name ?? null })),
+      me: session && session.role === "personal" ? session.email ?? null : null,
+    });
+  } catch (e) {
+    console.error("[personals]", e);
+    if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+      const me = session && session.role === "personal" ? session.email ?? "personal@nfit.local" : null;
+      return Response.json({
+        items: [
+          { email: me || "personal@nfit.local", name: "Você" },
+          { email: "segunda@nfit.local", name: "Segunda professora" },
+        ],
+        me,
+      });
+    }
+    return Response.json({ error: { message: "Não foi possível carregar as professoras." } }, { status: 503 });
+  }
 }
 
 export async function POST(request: Request) {

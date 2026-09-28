@@ -10,10 +10,22 @@ export async function GET(request: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   try {
     const workout = await getWorkout(id);
-    if (!workout) return Response.json({ error: { message: "Treino não encontrado" } }, { status: 404 });
+    if (!workout) {
+      if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+        const { workouts } = await import("@/lib/mocks");
+        const mock = workouts.find((w) => w.id === id) ?? workouts[0];
+        return Response.json({ ...mock, id });
+      }
+      return Response.json({ error: { message: "Treino não encontrado" } }, { status: 404 });
+    }
     return Response.json(workout);
   } catch (e) {
     console.error("[treinos]", e);
+    if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+      const { workouts } = await import("@/lib/mocks");
+      const mock = workouts.find((w) => w.id === id) ?? workouts[0];
+      return Response.json({ ...mock, id });
+    }
     return Response.json({ error: { message: "Não foi possível ler o treino." } }, { status: 503 });
   }
 }

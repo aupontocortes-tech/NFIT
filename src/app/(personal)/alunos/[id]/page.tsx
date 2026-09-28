@@ -48,7 +48,13 @@ export default function AlunoDetalhePage() {
   const router = useRouter();
   const { toast } = useToast();
   const [student, setStudent] = useState<Student | null>(null);
-  const [tab, setTab] = useState(search.get("aba") === "avaliacoes" ? "avaliacoes" : "overview");
+  const initialTab = search.get("aba");
+  const [tab, setTab] = useState(
+    initialTab &&
+      ["overview", "treinos", "cobrancas", "avaliacoes", "apagar", "app"].includes(initialTab)
+      ? initialTab
+      : "overview",
+  );
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);

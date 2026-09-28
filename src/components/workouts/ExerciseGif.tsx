@@ -2,7 +2,7 @@
 
 import { getExerciseGifUrl } from "@/lib/exercise-gifs";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Size = "sm" | "md";
 
@@ -19,7 +19,6 @@ export function ExerciseGif({
   name,
   size = "sm",
   className,
-  /** Se false, não reserva espaço quando não há GIF. Default: true (alinha listas). */
   reserveSpace = true,
 }: {
   name: string;
@@ -30,6 +29,11 @@ export function ExerciseGif({
   const url = getExerciseGifUrl(name);
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+    setLoaded(false);
+  }, [url]);
 
   if (!name.trim()) return null;
 
@@ -55,9 +59,6 @@ export function ExerciseGif({
         className,
       )}
     >
-      {!loaded ? (
-        <span className="absolute inset-0 animate-pulse bg-fill" aria-hidden />
-      ) : null}
       <img
         src={url}
         alt=""
@@ -66,8 +67,8 @@ export function ExerciseGif({
         onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
         className={cn(
-          "h-full w-full object-contain",
-          loaded ? "opacity-100" : "opacity-0",
+          "h-full w-full object-contain transition-opacity",
+          loaded ? "opacity-100" : "opacity-80",
         )}
       />
     </span>
