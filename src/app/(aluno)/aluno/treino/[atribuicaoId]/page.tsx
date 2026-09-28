@@ -90,11 +90,11 @@ export default function ExecutarTreinoPage() {
             const key = `${bi}-${ei}`;
             return (
               <Card key={key} className="mb-3">
-                <div className="mb-3 flex items-start gap-3">
+                <div className="mb-3 flex items-center gap-3">
                   <ExerciseGif name={ex.name} size="md" />
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium">{ex.name}</p>
-                    <p className="text-caption tabular-nums">
+                    <p className="font-medium leading-snug">{ex.name}</p>
+                    <p className="mt-0.5 text-caption tabular-nums">
                       Meta: {ex.sets}×{ex.reps}
                       {ex.restSeconds ? ` · descanso ${ex.restSeconds}s` : ""}
                     </p>

@@ -217,12 +217,12 @@ export default function AlunoDetalhePage() {
                               {block.exercises.map((ex, ei) => (
                                 <li
                                   key={ei}
-                                  className="flex items-start gap-3 rounded-[var(--radius-md)] border border-border p-3"
+                                  className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border p-3"
                                 >
-                                  <ExerciseGif name={ex.name} />
+                                  <ExerciseGif name={ex.name} size="sm" />
                                   <div className="min-w-0 flex-1">
-                                    <p className="font-medium">{ex.name}</p>
-                                    <p className="text-caption tabular-nums">
+                                    <p className="font-medium leading-snug">{ex.name}</p>
+                                    <p className="mt-0.5 text-caption tabular-nums">
                                       {ex.sets}×{ex.reps}
                                       {ex.intensity
                                         ? ` · ${ex.intensity}`

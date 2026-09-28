@@ -125,7 +125,13 @@ export default function NovoTreinoPage() {
           <p className="mb-2 text-sm font-medium">Primeiro exercício</p>
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="flex items-end gap-3 sm:col-span-3">
-              <ExerciseGif name={form.exerciseName} size="md" />
+              <ExerciseGif
+                key={form.exerciseName.trim().toLowerCase() || "empty"}
+                name={form.exerciseName}
+                size="md"
+                reserveSpace
+                className="mb-0.5"
+              />
               <Input
                 label="Exercício"
                 value={form.exerciseName}
