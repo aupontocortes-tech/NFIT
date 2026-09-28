@@ -10,6 +10,7 @@ import {
   Textarea,
 } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
+import { ExerciseGif } from "@/components/workouts/ExerciseGif";
 import { api } from "@/lib/api";
 import type { Workout } from "@/lib/mocks";
 import Link from "next/link";
@@ -96,17 +97,20 @@ export default function TreinoDetalhePage() {
             {block.exercises.map((ex, ei) => (
               <li
                 key={ei}
-                className="rounded-[var(--radius-md)] border border-border p-3"
+                className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border p-3"
               >
-                <p className="font-medium">{ex.name}</p>
-                <p className="text-caption tabular-nums">
-                  {ex.sets}×{ex.reps}
-                  {ex.load ? ` · ${ex.load}` : ""}
-                  {ex.restSeconds ? ` · descanso ${ex.restSeconds}s` : ""}
-                </p>
-                {ex.notes ? (
-                  <p className="mt-1 text-sm text-text-muted">{ex.notes}</p>
-                ) : null}
+                <ExerciseGif name={ex.name} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium leading-snug">{ex.name}</p>
+                  <p className="mt-0.5 text-caption tabular-nums">
+                    {ex.sets}×{ex.reps}
+                    {ex.load ? ` · ${ex.load}` : ""}
+                    {ex.restSeconds ? ` · descanso ${ex.restSeconds}s` : ""}
+                  </p>
+                  {ex.notes ? (
+                    <p className="mt-1 text-sm text-text-muted">{ex.notes}</p>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>

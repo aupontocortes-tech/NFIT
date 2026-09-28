@@ -12,11 +12,31 @@ export async function GET(request: Request, ctx: Ctx) {
   try {
     const student = await getStudent(id);
     if (!student) {
+      if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+        return Response.json({
+          id,
+          name: "Aluno demo",
+          email: "aluno@nfit.local",
+          status: "active",
+          createdAt: new Date().toISOString(),
+          activeWorkoutCount: 1,
+        });
+      }
       return Response.json({ error: { message: "Aluno não encontrado" } }, { status: 404 });
     }
     return Response.json(student);
   } catch (e) {
     console.error("[alunos]", e);
+    if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+      return Response.json({
+        id,
+        name: "Aluno demo",
+        email: "aluno@nfit.local",
+        status: "active",
+        createdAt: new Date().toISOString(),
+        activeWorkoutCount: 1,
+      });
+    }
     return Response.json(
       { error: { message: "Não foi possível ler o aluno." } },
       { status: 503 },

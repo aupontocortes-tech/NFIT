@@ -2,6 +2,7 @@
 
 import { Button, Card, Input, PageHeader, Skeleton } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
+import { ExerciseGif } from "@/components/workouts/ExerciseGif";
 import { api, ApiError } from "@/lib/api";
 import type { Assignment } from "@/lib/mocks";
 import { cn } from "@/lib/utils";
@@ -89,11 +90,16 @@ export default function ExecutarTreinoPage() {
             const key = `${bi}-${ei}`;
             return (
               <Card key={key} className="mb-3">
-                <p className="font-medium">{ex.name}</p>
-                <p className="mb-3 text-caption tabular-nums">
-                  Meta: {ex.sets}×{ex.reps}
-                  {ex.restSeconds ? ` · descanso ${ex.restSeconds}s` : ""}
-                </p>
+                <div className="mb-3 flex items-center gap-3">
+                  <ExerciseGif name={ex.name} size="md" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium leading-snug">{ex.name}</p>
+                    <p className="mt-0.5 text-caption tabular-nums">
+                      Meta: {ex.sets}×{ex.reps}
+                      {ex.restSeconds ? ` · descanso ${ex.restSeconds}s` : ""}
+                    </p>
+                  </div>
+                </div>
                 <ul className="space-y-2">
                   {(sets[key] ?? []).map((s, si) => (
                     <li key={si} className="flex items-center gap-2">

@@ -8,6 +8,16 @@ export async function GET(request: Request) {
     return Response.json({ id: "personal", ...profile });
   } catch (e) {
     console.error("[perfil]", e);
+    if (process.env.NEXT_PUBLIC_USE_MOCK === "true") {
+      return Response.json({
+        id: "personal",
+        name: "Personal demo",
+        email: "personal@nfit.local",
+        studioName: "Studio nfit",
+        timezone: "America/Sao_Paulo",
+        notificationPrefs: { email: true, push: true },
+      });
+    }
     return Response.json({ error: { message: "Não foi possível ler o perfil." } }, { status: 503 });
   }
 }

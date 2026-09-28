@@ -180,15 +180,22 @@ export async function listAssignments(studentId?: string): Promise<Assignment[]>
         LEFT JOIN nfit_workouts w ON w.id = a.workout_id
         ORDER BY a.start_date DESC
       `;
-  return (rows as Record<string, unknown>[]).map((row) => ({
-    id: String(row.id),
-    workoutId: String(row.workout_id),
-    studentId: String(row.student_id),
-    status: (row.status as Assignment["status"]) || "active",
-    startDate: String(row.start_date),
-    notes: row.notes ? String(row.notes) : undefined,
-    workoutTitle: row.title ? String(row.title) : undefined,
-  }));
+  const items: Assignment[] = [];
+  for (const row of rows as Record<string, unknown>[]) {
+    const workoutId = String(row.workout_id);
+    const workout = await getWorkout(workoutId);
+    items.push({
+      id: String(row.id),
+      workoutId,
+      studentId: String(row.student_id),
+      status: (row.status as Assignment["status"]) || "active",
+      startDate: String(row.start_date),
+      notes: row.notes ? String(row.notes) : undefined,
+      workoutTitle: workout?.title ?? (row.title ? String(row.title) : undefined),
+      workout: workout ?? undefined,
+    });
+  }
+  return items;
 }
 
 export async function getAssignment(id: string): Promise<Assignment | null> {

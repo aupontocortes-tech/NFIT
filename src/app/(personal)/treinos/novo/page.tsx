@@ -2,6 +2,7 @@
 
 import { Button, Card, Input, PageHeader, Select, Textarea } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
+import { ExerciseGif } from "@/components/workouts/ExerciseGif";
 import { api, ApiError } from "@/lib/api";
 import type { Student } from "@/lib/mocks";
 import Link from "next/link";
@@ -123,14 +124,23 @@ export default function NovoTreinoPage() {
         <div className="rounded-[var(--radius-md)] border border-border p-3">
           <p className="mb-2 text-sm font-medium">Primeiro exercício</p>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Input
-              label="Exercício"
-              value={form.exerciseName}
-              onChange={(e) =>
-                setForm({ ...form, exerciseName: e.target.value })
-              }
-              className="sm:col-span-3"
-            />
+            <div className="flex items-end gap-3 sm:col-span-3">
+              <ExerciseGif
+                key={form.exerciseName.trim().toLowerCase() || "empty"}
+                name={form.exerciseName}
+                size="md"
+                reserveSpace
+                className="mb-0.5"
+              />
+              <Input
+                label="Exercício"
+                value={form.exerciseName}
+                onChange={(e) =>
+                  setForm({ ...form, exerciseName: e.target.value })
+                }
+                className="min-w-0 flex-1"
+              />
+            </div>
             <Input
               label="Séries"
               value={form.sets}

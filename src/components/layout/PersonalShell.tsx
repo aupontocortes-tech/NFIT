@@ -1,5 +1,6 @@
 "use client";
 
+import { LogoutButton } from "@/components/auth/LogoutButton";
 import { Avatar } from "@/components/ui";
 import { AppName } from "@/components/ui/AppName";
 import { useProfile } from "@/lib/profile";
@@ -134,7 +135,7 @@ export function PersonalShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className={cn("border-t border-border p-4", collapsed && "px-2")}>
+        <div className={cn("space-y-3 border-t border-border p-4", collapsed && "px-2")}>
           <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
             <Avatar name={name || "?"} size="md" />
             {collapsed ? null : (
@@ -144,6 +145,7 @@ export function PersonalShell({ children }: { children: ReactNode }) {
               </div>
             )}
           </div>
+          <LogoutButton compact className={cn("w-full", collapsed && "px-0")} />
         </div>
       </aside>
 
@@ -153,6 +155,7 @@ export function PersonalShell({ children }: { children: ReactNode }) {
           <p className="hidden text-base font-semibold text-text-muted md:block">Área do Personal</p>
           <div className="flex items-center gap-2">
             <Avatar name={name || "?"} size="sm" className="md:hidden" />
+            <LogoutButton compact />
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-24 md:px-6 md:pb-8">
