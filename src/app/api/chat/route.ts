@@ -1,6 +1,9 @@
 import { listConversations } from "@/lib/server/chat";
+import { currentSession, requirePersonal } from "@/lib/server/guard";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   try {
     const items = await listConversations();
     return Response.json({ items });

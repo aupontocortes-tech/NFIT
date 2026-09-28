@@ -209,7 +209,7 @@ export function ClassCalendar({
   }
 
   return (
-    <div>
+    <div className="min-w-0 overflow-x-hidden">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button type="button" size="sm" variant="secondary" onClick={() => step(-1)}>
@@ -251,9 +251,9 @@ export function ClassCalendar({
       ) : null}
 
       {view === "month" ? (
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid min-w-0 grid-cols-7 gap-1">
           {WEEKDAYS.map((d) => (
-            <p key={d} className="px-1 py-1 text-center text-caption">
+            <p key={d} className="truncate px-1 py-1 text-center text-caption">
               {d}
             </p>
           ))}
@@ -272,7 +272,7 @@ export function ClassCalendar({
                 }}
                 onDrop={(ev) => dropOn(ev, day)}
                 className={cn(
-                  "min-h-24 cursor-pointer rounded-[var(--radius-md)] border bg-[#efe8dc] p-1 text-left dark:bg-[#2a2a2a]",
+                  "min-h-24 min-w-0 cursor-pointer rounded-[var(--radius-md)] border bg-[#efe8dc] p-1 text-left dark:bg-[#2a2a2a]",
                   !tone && "border-border",
                   sameDay(day, new Date()) && "ring-1 ring-brand",
                   ghost === dayKey(day) && "ring-2 ring-brand",
@@ -293,7 +293,7 @@ export function ClassCalendar({
       ) : null}
 
       {view === "week" ? (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-7">
+        <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-7">
           {week.map((day) => (
             <div
               key={day.toISOString()}
@@ -305,7 +305,7 @@ export function ClassCalendar({
               }}
               onDrop={(ev) => dropOn(ev, day)}
               className={cn(
-                "min-h-40 cursor-pointer rounded-[var(--radius-md)] border border-border bg-[#efe8dc] p-2 text-left dark:bg-[#2a2a2a]",
+                "min-h-40 min-w-0 cursor-pointer rounded-[var(--radius-md)] border border-border bg-[#efe8dc] p-2 text-left dark:bg-[#2a2a2a]",
                 sameDay(day, new Date()) && "ring-1 ring-brand",
                 ghost === dayKey(day) && "ring-2 ring-brand",
               )}

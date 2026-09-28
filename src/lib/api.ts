@@ -430,15 +430,15 @@ export const api = {
   },
 
   async logout() {
-    if (USE_MOCK) {
-      await delay(100);
-      setToken(null);
-      return;
-    }
     try {
-      await request<void>("/auth/logout", { method: "POST" });
+      await fetch("/api/auth/logout", { method: "POST" });
     } finally {
       setToken(null);
+      try {
+        localStorage.removeItem("nfit_aluno_id");
+      } catch {
+        /* ignore */
+      }
     }
   },
 

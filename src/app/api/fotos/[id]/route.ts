@@ -1,4 +1,5 @@
 import { deletePhoto, readPhoto } from "@/lib/server/photos";
+import { currentSession, requirePersonal } from "@/lib/server/guard";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -19,7 +20,9 @@ export async function GET(_request: Request, ctx: Ctx) {
   }
 }
 
-export async function DELETE(_request: Request, ctx: Ctx) {
+export async function DELETE(request: Request, ctx: Ctx) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   const { id } = await ctx.params;
   try {
     await deletePhoto(id);

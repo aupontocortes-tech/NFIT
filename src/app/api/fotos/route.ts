@@ -1,6 +1,10 @@
 import { savePhoto } from "@/lib/server/photos";
+import { currentSession } from "@/lib/server/guard";
+import { clientIp, rateLimitResponse, tooFast } from "@/lib/server/rate-limit";
 
 export async function POST(request: Request) {
+  const session = await currentSession(request);
+  if (!session && tooFast(`foto:${clientIp(request)}`, 12)) return rateLimitResponse();
   let form: FormData;
   try {
     form = await request.formData();

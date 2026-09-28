@@ -161,7 +161,7 @@ export default function AgendaPage() {
     }
     if (slots.length === 0 && plan.days.length > 0) {
       await savePlan(student.id);
-      toast("Dias e horários salvos para esse aluno");
+      toast("Salvamento concluído. Dias e horários salvos para esse aluno.");
       setPlannerOpen(false);
       await reload();
       return;
@@ -179,7 +179,7 @@ export default function AgendaPage() {
           endsAt: end.toISOString(),
         });
       }
-      toast(`${slots.length} aula${slots.length > 1 ? "s" : ""} marcada${slots.length > 1 ? "s" : ""} para ${student.name.split(" ")[0]}`);
+      toast(`Salvamento concluído. ${slots.length} aula${slots.length > 1 ? "s" : ""} marcada${slots.length > 1 ? "s" : ""} para ${student.name.split(" ")[0]}.`);
       await savePlan(student.id);
       setPlannerOpen(false);
       await reload();
@@ -309,7 +309,7 @@ export default function AgendaPage() {
         location: form.location,
         notes: form.notes,
       });
-      toast("Aula marcada");
+      toast("Salvamento concluído. Aula marcada.");
       setOpen(false);
       await reload();
     } catch (e) {
@@ -341,7 +341,7 @@ export default function AgendaPage() {
       endsAt: endsAt.toISOString(),
       status: "rescheduled",
     });
-    toast(`Aula de ${shortName(event.studentName)} remarcada`);
+    toast(`Salvamento concluído. Aula de ${shortName(event.studentName)} remarcada.`);
     await reload();
   }
 
@@ -353,7 +353,7 @@ export default function AgendaPage() {
         endsAt: event.endsAt,
         status: given ? "given" : "scheduled",
       });
-      toast(given ? `Aula de ${shortName(event.studentName)} dada` : `Aula de ${shortName(event.studentName)} voltou para marcada`);
+      toast(given ? `Salvamento concluído. Aula de ${shortName(event.studentName)} dada.` : `Salvamento concluído. Aula de ${shortName(event.studentName)} voltou para marcada.`);
       await reload();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Não foi possível marcar a aula", "error");

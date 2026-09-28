@@ -64,6 +64,32 @@ async function ensureAvatarColumn() {
   await db()`ALTER TABLE nfit_students ADD COLUMN IF NOT EXISTS avatar_url text`;
   await db()`ALTER TABLE nfit_students ADD COLUMN IF NOT EXISTS next_assessment_at timestamptz`;
   await db()`ALTER TABLE nfit_students ADD COLUMN IF NOT EXISTS delete_confirm_code text`;
+  await db()`ALTER TABLE nfit_students ADD COLUMN IF NOT EXISTS password_hash text`;
+}
+
+export async function studentAuthByEmail(email: string) {
+  await ensureAvatarColumn();
+  const rows = await db()`
+    SELECT id, name, password_hash
+    FROM nfit_students
+    WHERE lower(email) = ${email.trim().toLowerCase()}
+    LIMIT 1
+  `;
+  const row = rows[0] as { id: string; name: string; password_hash: string | null } | undefined;
+  if (!row) return null;
+  return { id: row.id, name: row.name, passwordHash: row.password_hash };
+}
+
+export async function studentHasPassword(id: string) {
+  await ensureAvatarColumn();
+  const rows = await db()`SELECT password_hash FROM nfit_students WHERE id = ${id} LIMIT 1`;
+  const hash = (rows[0] as { password_hash?: string | null } | undefined)?.password_hash;
+  return Boolean(hash);
+}
+
+export async function setStudentPassword(id: string, passwordHash: string) {
+  await ensureAvatarColumn();
+  await db()`UPDATE nfit_students SET password_hash = ${passwordHash} WHERE id = ${id}`;
 }
 
 export async function listStudents(params?: { q?: string; status?: string }): Promise<Student[]> {

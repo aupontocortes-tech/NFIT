@@ -19,7 +19,9 @@ function ensureTable() {
       body text NOT NULL,
       created_at timestamptz NOT NULL DEFAULT now()
     )
-  `.then(() => undefined);
+    `.then(async () => {
+      await db()`ALTER TABLE nfit_messages ADD COLUMN IF NOT EXISTS read_at timestamptz`;
+    });
   return ready;
 }
 
@@ -35,6 +37,15 @@ export async function listConversations(): Promise<Conversation[]> {
     FROM nfit_messages
     ORDER BY student_id, created_at DESC
   `;
+  const unread = await db()`
+    SELECT student_id, count(*)::int AS total
+    FROM nfit_messages
+    WHERE read_at IS NULL AND sender_id <> ${"personal"}
+    GROUP BY student_id
+  `;
+  const unreadByStudent = new Map(
+    (unread as Record<string, unknown>[]).map((row) => [String(row.student_id), Number(row.total)]),
+  );
   const byStudent = new Map(
     (last as Record<string, unknown>[]).map((row) => [String(row.student_id), row]),
   );
@@ -45,7 +56,7 @@ export async function listConversations(): Promise<Conversation[]> {
         id: s.id,
         peer: { id: s.id, name: s.name, avatarUrl: s.avatarUrl },
         lastMessage: row ? String(row.body) : "Nenhuma mensagem ainda",
-        unreadCount: 0,
+        unreadCount: unreadByStudent.get(s.id) ?? 0,
         updatedAt: row ? iso(row.created_at) : s.createdAt,
       };
     })
@@ -66,6 +77,15 @@ export async function listMessages(studentId: string): Promise<Message[]> {
     body: String(row.body),
     createdAt: iso(row.created_at),
   }));
+}
+
+export async function markStudentMessagesRead(studentId: string) {
+  await ensureTable();
+  await db()`
+    UPDATE nfit_messages
+    SET read_at = now()
+    WHERE student_id = ${studentId} AND sender_id <> ${"personal"} AND read_at IS NULL
+  `;
 }
 
 export async function addMessage(studentId: string, senderId: string, body: string): Promise<Message> {

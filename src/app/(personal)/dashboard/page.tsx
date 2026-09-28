@@ -3,20 +3,32 @@
 import { Button, Card, Empty, PageHeader, Skeleton } from "@/components/ui";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
-import { Calendar, CreditCard, MessageCircle, Sparkles, Users, Dumbbell } from "lucide-react";
+import { Calendar, CreditCard, MessageCircle, Sparkles, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { EventItem, Student } from "@/lib/mocks";
+import type { EventItem, Invoice, Student } from "@/lib/mocks";
 
 export default function DashboardPage() {
   const [students, setStudents] = useState<Student[] | null>(null);
   const [events, setEvents] = useState<EventItem[] | null>(null);
   const [pendingPay, setPendingPay] = useState(0);
+  const [unread, setUnread] = useState(0);
+  const [due, setDue] = useState<Invoice[]>([]);
 
   useEffect(() => {
     api.listStudents().then((r) => setStudents(r.items)).catch(() => setStudents([]));
     api.listEvents().then((r) => setEvents(r.items)).catch(() => setEvents([]));
-    api.listInvoices().then((r) => setPendingPay(r.items.filter((i) => i.status !== "paid").length)).catch(() => setPendingPay(0));
+    api.listInvoices().then((r) => {
+      const open = r.items.filter((i) => i.status !== "paid");
+      setPendingPay(open.length);
+      setDue(open);
+    }).catch(() => {
+      setPendingPay(0);
+      setDue([]);
+    });
+    api.listConversations().then((r) => {
+      setUnread(r.items.reduce((n, c) => n + c.unreadCount, 0));
+    }).catch(() => setUnread(0));
   }, []);
 
   if (!students || !events) {
@@ -50,10 +62,10 @@ export default function DashboardPage() {
   });
 
   const cards = [
-    { label: "Alunos ativos", value: active.length, href: "/alunos", icon: Users },
-    { label: "Aulas na semana", value: thisWeek.length, href: "/agenda", icon: Dumbbell },
-    { label: "Cobranças pendentes", value: pendingPay, href: "/cobrancas", icon: CreditCard },
-    { label: "Mensagens não lidas", value: 0, href: "/chat", icon: MessageCircle },
+    { label: "Alunos ativos", value: active.length, href: "/alunos", icon: Users, color: "#22c55e" },
+    { label: "Aulas na semana", value: thisWeek.length, href: "/agenda", icon: Calendar, color: "#eab308" },
+    { label: "Cobranças pendentes", value: pendingPay, href: "/cobrancas", icon: CreditCard, color: "#ec4899" },
+    { label: "Mensagens não lidas", value: unread, href: "/chat", icon: MessageCircle, color: "#06b6d4" },
   ];
 
   return (
@@ -91,7 +103,10 @@ export default function DashboardPage() {
               <Card className="cursor-pointer transition hover:bg-hover">
                 <div className="flex items-start justify-between">
                   <p className="text-caption">{c.label}</p>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-brand-muted text-brand">
+                  <span
+                    className="flex h-8 w-8 items-center justify-center rounded-[10px]"
+                    style={{ backgroundColor: `${c.color}24`, color: c.color }}
+                  >
                     <Icon className="h-4 w-4" strokeWidth={1.75} />
                   </span>
                 </div>
@@ -102,6 +117,21 @@ export default function DashboardPage() {
         })}
       </div>
 
+      {due.length > 0 ? (
+        <Card className="mb-6 border-brand">
+          <p className="font-semibold">Cobranças para lembrar</p>
+          <ul className="mt-2 space-y-1 text-sm text-text-muted">
+            {due.slice(0, 4).map((inv) => (
+              <li key={inv.id}>
+                <Link href={`/cobrancas/${inv.id}`} className="text-brand">
+                  {inv.studentName} · {inv.status === "overdue" ? "atrasada" : "vence"} {formatDate(inv.dueDate)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <div className="mb-3 flex items-center justify-between">
@@ -111,7 +141,15 @@ export default function DashboardPage() {
             </Link>
           </div>
           {active.length === 0 ? (
-            <Empty title="Nenhum aluno cadastrado" />
+            <Empty
+              title="Nenhum aluno cadastrado"
+              description="Cadastre o primeiro aluno para montar treino e agenda."
+              action={
+                <Link href="/alunos/novo">
+                  <Button size="sm">Novo aluno</Button>
+                </Link>
+              }
+            />
           ) : (
             <ul className="space-y-2">
               {active.map((s) => (
@@ -133,7 +171,16 @@ export default function DashboardPage() {
             </Link>
           </div>
           {upcoming.length === 0 ? (
-            <Empty icon={Calendar} title="Nenhuma aula marcada" />
+            <Empty
+              icon={Calendar}
+              title="Nenhuma aula marcada"
+              description="Marque os dias da semana de cada aluno."
+              action={
+                <Link href="/agenda">
+                  <Button size="sm">Abrir agenda</Button>
+                </Link>
+              }
+            />
           ) : (
             <ul className="space-y-3">
               {upcoming.map((e) => (

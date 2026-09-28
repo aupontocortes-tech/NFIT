@@ -51,6 +51,13 @@ export default function AlunoInicioPage() {
               ? "Quando um treino for salvo para você, ele aparece aqui."
               : "Use o link que a personal enviou. O cadastro é só seu."
           }
+          action={
+            registered ? (
+              <Link href="/aluno/agenda">
+                <Button size="sm">Ver agenda</Button>
+              </Link>
+            ) : null
+          }
         />
       ) : (
         <ul className="mb-6 space-y-3">
@@ -77,7 +84,17 @@ export default function AlunoInicioPage() {
         </ul>
       )}
 
-      {classes.length > 0 ? (
+      {registered && classes.length === 0 ? (
+        <Empty
+          title="Nenhuma aula marcada"
+          description="Quando a personal marcar o horário, ele aparece aqui."
+          action={
+            <Link href="/aluno/agenda">
+              <Button size="sm">Ver agenda</Button>
+            </Link>
+          }
+        />
+      ) : classes.length > 0 ? (
         <div>
           <h3 className="text-subtitle mb-3">Próximas aulas</h3>
           <ul className="space-y-2">

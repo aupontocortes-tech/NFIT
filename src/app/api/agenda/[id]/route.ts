@@ -1,9 +1,12 @@
 import { updateEvent } from "@/lib/server/events";
+import { currentSession, requirePersonal } from "@/lib/server/guard";
 import type { EventItem } from "@/lib/mocks";
 
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, ctx: Ctx) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   const { id } = await ctx.params;
   let body: { startsAt?: string; endsAt?: string; status?: EventItem["status"] };
   try {

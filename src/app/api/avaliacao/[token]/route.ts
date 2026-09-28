@@ -1,5 +1,6 @@
 import { bodyMetrics, type BodyInput } from "@/lib/body-metrics";
 import { heightToCm, parseBrNumber } from "@/lib/br-number";
+import { measureProblem } from "@/lib/validators";
 import { getStudent } from "@/lib/server/students";
 import { saveCheckin, studentIdByToken } from "@/lib/server/checkins";
 
@@ -78,9 +79,21 @@ export async function POST(request: Request, ctx: Ctx) {
   if (!Number.isFinite(weightKg) || weightKg < 20 || weightKg > 300) {
     return Response.json({ error: { message: "Informe o peso em quilos, com vírgula se precisar, como 62,5." } }, { status: 400 });
   }
-  const measures = [chestCm, bicepsRightCm, bicepsLeftCm, forearmRightCm, forearmLeftCm, waistCm, abdomenCm, hipCm, thighRightCm, thighLeftCm];
-  if (measures.some((n) => !Number.isFinite(n) || n <= 0)) {
-    return Response.json({ error: { message: "Preencha as medidas. Pode usar vírgula, como 30,5." } }, { status: 400 });
+  const measures: [string, number][] = [
+    ["o peito", chestCm],
+    ["o braço direito", bicepsRightCm],
+    ["o braço esquerdo", bicepsLeftCm],
+    ["o antebraço direito", forearmRightCm],
+    ["o antebraço esquerdo", forearmLeftCm],
+    ["a cintura", waistCm],
+    ["a barriga", abdomenCm],
+    ["o quadril", hipCm],
+    ["a coxa direita", thighRightCm],
+    ["a coxa esquerda", thighLeftCm],
+  ];
+  for (const [label, n] of measures) {
+    const problem = measureProblem(n, label);
+    if (problem) return Response.json({ error: { message: problem } }, { status: 400 });
   }
   if (photos.length < 1) {
     return Response.json({ error: { message: "Envie pelo menos uma foto." } }, { status: 400 });

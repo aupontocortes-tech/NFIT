@@ -1,6 +1,8 @@
 import { readProfile, writeProfile, type StoredProfile } from "@/lib/server/profile";
+import { currentSession, requirePersonal, unauthorized } from "@/lib/server/guard";
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!await currentSession(request)) return unauthorized();
   try {
     const profile = await readProfile();
     return Response.json({ id: "personal", ...profile });
@@ -11,6 +13,8 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   let body: Partial<StoredProfile>;
   try {
     body = await request.json();

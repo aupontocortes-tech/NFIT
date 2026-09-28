@@ -1,8 +1,13 @@
 import { issueDeleteCode } from "@/lib/server/students";
+import { currentSession, requirePersonal } from "@/lib/server/guard";
+import { clientIp, rateLimitResponse, tooFast } from "@/lib/server/rate-limit";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export async function POST(_request: Request, ctx: Ctx) {
+export async function POST(request: Request, ctx: Ctx) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
+  if (tooFast(`apagar:${clientIp(request)}`, 5)) return rateLimitResponse();
   const { id } = await ctx.params;
   try {
     const code = await issueDeleteCode(id);

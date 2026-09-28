@@ -1,8 +1,11 @@
 import { getWeeklyPlan, saveWeeklyPlan } from "@/lib/server/weekly-plan";
+import { currentSession, requirePersonal } from "@/lib/server/guard";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, ctx: Ctx) {
+export async function GET(request: Request, ctx: Ctx) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   const { id } = await ctx.params;
   try {
     const times = await getWeeklyPlan(id);
@@ -14,6 +17,8 @@ export async function GET(_request: Request, ctx: Ctx) {
 }
 
 export async function PUT(request: Request, ctx: Ctx) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   const { id } = await ctx.params;
   let body: { times?: Record<string, string> };
   try {

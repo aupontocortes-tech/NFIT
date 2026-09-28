@@ -58,4 +58,16 @@ export function validateSignup(f: { name: string; email: string; password: strin
   return e;
 }
 
+export function isoDateProblem(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Data inválida";
+  return null;
+}
+
+export function measureProblem(n: number, label: string) {
+  if (!Number.isFinite(n) || n <= 0) return `Informe ${label}. Pode usar vírgula, como 30,5.`;
+  if (n < 5 || n > 250) return `${label} está fora do intervalo.`;
+  return null;
+}
+
 export const hasErrors = (e: object) => Object.keys(e).length > 0;

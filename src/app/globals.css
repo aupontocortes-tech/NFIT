@@ -165,3 +165,13 @@ body {
 .app-word-lg .app-letter-fit {
   font-size: 1.7rem;
 }
+
+html.dark input[type="time"] {
+  color-scheme: dark;
+}
+
+html.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.85;
+  filter: invert(1);
+}

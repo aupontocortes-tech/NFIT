@@ -27,7 +27,7 @@ export default function CobrancaDetalhePage() {
     try {
       const updated = await api.markInvoicePaid(id);
       setInv(updated);
-      toast("Marcada como paga");
+      toast("Pagamento registrado");
     } finally {
       setLoading(false);
     }
@@ -42,7 +42,7 @@ export default function CobrancaDetalhePage() {
         action={
           inv.status !== "paid" ? (
             <Button size="sm" loading={loading} onClick={markPaid}>
-              Marcar como pago
+              Registrar pagamento
             </Button>
           ) : null
         }

@@ -1,8 +1,10 @@
 import { getOrCreateCheckinToken } from "@/lib/server/checkins";
 import { createStudent, findStudentByEmail } from "@/lib/server/students";
+import { clientIp, rateLimitResponse, tooFast } from "@/lib/server/rate-limit";
 import { hasErrors, validateStudent } from "@/lib/validators";
 
 export async function POST(request: Request) {
+  if (tooFast(`convite:${clientIp(request)}`, 8)) return rateLimitResponse();
   let body: { name?: string; email?: string; phone?: string; notes?: string };
   try {
     body = await request.json();

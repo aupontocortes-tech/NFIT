@@ -1,10 +1,14 @@
 import { deleteStudent, getStudent, patchStudent } from "@/lib/server/students";
+import { currentSession, requirePersonal, requireStudentAccess } from "@/lib/server/guard";
+import { isoDateProblem } from "@/lib/validators";
 import type { StudentStatus } from "@/lib/mocks";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, ctx: Ctx) {
+export async function GET(request: Request, ctx: Ctx) {
   const { id } = await ctx.params;
+  const denied = requireStudentAccess(await currentSession(request), id);
+  if (denied) return denied;
   try {
     const student = await getStudent(id);
     if (!student) {
@@ -22,6 +26,8 @@ export async function GET(_request: Request, ctx: Ctx) {
 
 export async function PATCH(request: Request, ctx: Ctx) {
   const { id } = await ctx.params;
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   let body: Partial<{
     name: string;
     phone: string;
@@ -34,6 +40,10 @@ export async function PATCH(request: Request, ctx: Ctx) {
     body = await request.json();
   } catch {
     return Response.json({ error: { message: "JSON inválido" } }, { status: 400 });
+  }
+  if (body.nextAssessmentAt) {
+    const problem = isoDateProblem(body.nextAssessmentAt);
+    if (problem) return Response.json({ error: { message: problem } }, { status: 400 });
   }
   try {
     const student = await patchStudent(id, body);
@@ -52,6 +62,8 @@ export async function PATCH(request: Request, ctx: Ctx) {
 
 export async function DELETE(request: Request, ctx: Ctx) {
   const { id } = await ctx.params;
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   let body: { code?: string };
   try {
     body = await request.json();

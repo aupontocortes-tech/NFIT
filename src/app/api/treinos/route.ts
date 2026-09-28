@@ -1,7 +1,10 @@
 import { listWorkouts, saveWorkout } from "@/lib/server/workouts";
+import { currentSession, requirePersonal } from "@/lib/server/guard";
 import type { Workout } from "@/lib/mocks";
 
 export async function GET(request: Request) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   const url = new URL(request.url);
   try {
     let items = await listWorkouts();
@@ -17,6 +20,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   let body: Partial<Workout>;
   try {
     body = await request.json();

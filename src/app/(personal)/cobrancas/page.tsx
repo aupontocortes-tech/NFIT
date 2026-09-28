@@ -54,7 +54,16 @@ export default function CobrancasPage() {
       {!items ? (
         <SkeletonList />
       ) : items.length === 0 ? (
-        <Empty icon={CreditCard} title="Nenhuma cobrança" />
+        <Empty
+          icon={CreditCard}
+          title="Nenhuma cobrança"
+          description="Crie a cobrança. No vencimento o painel avisa, e o pagamento fica registrado quando você marcar como pago."
+          action={
+            <Link href="/cobrancas/nova">
+              <Button size="sm">Nova cobrança</Button>
+            </Link>
+          }
+        />
       ) : (
         <ul className="space-y-3">
           {items.map((inv) => (

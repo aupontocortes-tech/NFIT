@@ -1,9 +1,12 @@
 import { getWorkout, saveWorkout } from "@/lib/server/workouts";
+import { currentSession, requirePersonal } from "@/lib/server/guard";
 import type { Workout } from "@/lib/mocks";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, ctx: Ctx) {
+export async function GET(request: Request, ctx: Ctx) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   const { id } = await ctx.params;
   try {
     const workout = await getWorkout(id);
@@ -16,6 +19,8 @@ export async function GET(_request: Request, ctx: Ctx) {
 }
 
 export async function PATCH(request: Request, ctx: Ctx) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   const { id } = await ctx.params;
   let body: Partial<Workout>;
   try {

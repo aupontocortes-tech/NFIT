@@ -1,6 +1,9 @@
 import { getOpenAiKey, saveOpenAiKey } from "@/lib/server/openai-key";
+import { currentSession, requirePersonal } from "@/lib/server/guard";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   try {
     const saved = await getOpenAiKey();
     return Response.json({ configured: Boolean(process.env.OPENAI_API_KEY || saved) });
@@ -11,6 +14,8 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   let body: { key?: string };
   try {
     body = await request.json();

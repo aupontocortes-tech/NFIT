@@ -51,6 +51,12 @@ function mapRow(row: Record<string, unknown>): Invoice {
 
 export async function listInvoices(status?: string, studentId?: string): Promise<Invoice[]> {
   await ensureTable();
+  const todayKey = today();
+  await db()`
+    UPDATE nfit_invoices
+    SET status = ${"overdue"}
+    WHERE status = ${"pending"} AND due_date < ${todayKey}
+  `;
   const rows = await db()`
     SELECT id, student_id, student_name, description, amount, due_date, status, paid_at
     FROM nfit_invoices

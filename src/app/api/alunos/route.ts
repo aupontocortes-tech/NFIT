@@ -1,7 +1,10 @@
 import { createStudent, listStudents } from "@/lib/server/students";
+import { currentSession, requirePersonal } from "@/lib/server/guard";
 import { hasErrors, validateStudent } from "@/lib/validators";
 
 export async function GET(request: Request) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   const url = new URL(request.url);
   try {
     const items = await listStudents({
@@ -19,6 +22,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
   let body: { name?: string; email?: string; phone?: string; notes?: string };
   try {
     body = await request.json();

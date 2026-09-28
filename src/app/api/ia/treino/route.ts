@@ -4,6 +4,7 @@ import {
   type WorkoutInput,
 } from "@/lib/server/ai-workout";
 import { getOpenAiKey } from "@/lib/server/openai-key";
+import { currentSession, requirePersonal } from "@/lib/server/guard";
 
 // Limite simples por IP para não estourar a cota grátis
 const hits = new Map<string, number[]>();
@@ -26,6 +27,8 @@ export async function POST(request: Request) {
       { status: 429 },
     );
   }
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
 
   let body: Partial<WorkoutInput>;
   try {
