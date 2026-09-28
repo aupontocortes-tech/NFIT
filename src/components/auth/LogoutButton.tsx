@@ -27,9 +27,11 @@ export function LogoutButton({
       await api.logout();
       resetProfile();
       toast("Sessão encerrada", "info");
-      router.push("/login");
-    } finally {
+      // Navegação completa: limpa estado do cliente e libera login com outro perfil.
+      window.location.assign("/login");
+    } catch {
       setLoading(false);
+      router.push("/login");
     }
   }
 

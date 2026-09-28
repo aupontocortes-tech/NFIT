@@ -155,7 +155,7 @@ export function PersonalShell({ children }: { children: ReactNode }) {
           <p className="hidden text-base font-semibold text-text-muted md:block">Área do Personal</p>
           <div className="flex items-center gap-2">
             <Avatar name={name || "?"} size="sm" className="md:hidden" />
-            <LogoutButton compact className="md:hidden" />
+            <LogoutButton compact />
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-24 md:px-6 md:pb-8">
