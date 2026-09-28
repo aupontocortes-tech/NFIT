@@ -4,7 +4,13 @@ import {
   parsePersonalAccounts,
   type PersonalAccount,
 } from "@/lib/server/personal-auth";
+import { hashPassword, verifyPassword } from "@/lib/server/password";
 import { signSession, verifySession } from "@/lib/session-cookie";
+
+/** Espelha a regra do PUT /api/auth/login: setup público só se não houver nenhuma personal. */
+function publicSetupBlocked(accounts: PersonalAccount[]) {
+  return accounts.length > 0;
+}
 
 describe("contas de personal", () => {
   it("migra formato legado de uma conta", () => {
@@ -28,11 +34,42 @@ describe("contas de personal", () => {
     expect(findAccountByEmail(accounts, "c@x.com")).toBeNull();
   });
 
-  it("lista vazia bloqueia cadastro público (hasAny = false só sem contas)", () => {
-    expect(parsePersonalAccounts(null)).toEqual([]);
-    expect(parsePersonalAccounts({ accounts: [] })).toEqual([]);
-    const one = parsePersonalAccounts({ email: "p@x.com", passwordHash: "h" });
-    expect(one.length > 0).toBe(true);
+  it("cadastro público (PUT setup) bloqueado se já existe alguma personal", () => {
+    expect(publicSetupBlocked(parsePersonalAccounts(null))).toBe(false);
+    expect(publicSetupBlocked(parsePersonalAccounts({ accounts: [] }))).toBe(false);
+    expect(
+      publicSetupBlocked(parsePersonalAccounts({ email: "p@x.com", passwordHash: "h" })),
+    ).toBe(true);
+    expect(
+      publicSetupBlocked(
+        parsePersonalAccounts({
+          accounts: [
+            { email: "a@x.com", passwordHash: "h1" },
+            { email: "b@x.com", passwordHash: "h2" },
+          ],
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("login com 2 personais: cada e-mail autentica só a própria senha", async () => {
+    const hashUma = await hashPassword("senhaUma123");
+    const hashDuas = await hashPassword("senhaDuas123");
+    const accounts: PersonalAccount[] = [
+      { email: "uma@nfit.local", passwordHash: hashUma, name: "Uma" },
+      { email: "duas@nfit.local", passwordHash: hashDuas, name: "Duas" },
+    ];
+
+    const uma = findAccountByEmail(accounts, "uma@nfit.local");
+    const duas = findAccountByEmail(accounts, "duas@nfit.local");
+    expect(uma).toBeTruthy();
+    expect(duas).toBeTruthy();
+
+    expect(await verifyPassword("senhaUma123", uma!.passwordHash)).toBe(true);
+    expect(await verifyPassword("senhaDuas123", duas!.passwordHash)).toBe(true);
+    expect(await verifyPassword("senhaUma123", duas!.passwordHash)).toBe(false);
+    expect(await verifyPassword("senhaDuas123", uma!.passwordHash)).toBe(false);
+    expect(findAccountByEmail(accounts, "terceira@nfit.local")).toBeNull();
   });
 
   it("sessão personal guarda o e-mail da professora logada", async () => {
@@ -46,14 +83,5 @@ describe("contas de personal", () => {
     const session = await verifySession(token);
     expect(session?.role).toBe("personal");
     expect(session && "email" in session ? session.email : undefined).toBeUndefined();
-  });
-
-  it("login escolhe a conta certa entre duas", () => {
-    const accounts: PersonalAccount[] = [
-      { email: "uma@nfit.local", passwordHash: "hash-uma", name: "Uma" },
-      { email: "duas@nfit.local", passwordHash: "hash-duas", name: "Duas" },
-    ];
-    expect(findAccountByEmail(accounts, "duas@nfit.local")?.name).toBe("Duas");
-    expect(findAccountByEmail(accounts, "uma@nfit.local")?.passwordHash).toBe("hash-uma");
   });
 });
