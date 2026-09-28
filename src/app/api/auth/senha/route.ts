@@ -1,6 +1,10 @@
 import { currentSession, requirePersonal } from "@/lib/server/guard";
 import { hashPassword, verifyPassword } from "@/lib/server/password";
-import { readPersonalAuth, writePersonalAuth } from "@/lib/server/personal-auth";
+import {
+  findPersonalByEmail,
+  listPersonalAccounts,
+  updatePersonalPassword,
+} from "@/lib/server/personal-auth";
 import { passwordProblem } from "@/lib/validators";
 
 export async function POST(request: Request) {
@@ -13,12 +17,29 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ error: { message: "JSON inválido" } }, { status: 400 });
   }
-  const auth = await readPersonalAuth();
-  if (!auth || !(await verifyPassword(String(body.current ?? ""), auth.passwordHash))) {
+  const current = String(body.current ?? "");
+  const next = String(body.next ?? "");
+  const problem = passwordProblem(next);
+  if (problem) return Response.json({ error: { message: problem } }, { status: 400 });
+
+  let account =
+    session && session.role === "personal" && session.email
+      ? await findPersonalByEmail(session.email)
+      : null;
+  if (!account || !(await verifyPassword(current, account.passwordHash))) {
+    // fallback: acha pela senha atual entre as contas
+    const all = await listPersonalAccounts();
+    account = null;
+    for (const a of all) {
+      if (await verifyPassword(current, a.passwordHash)) {
+        account = a;
+        break;
+      }
+    }
+  }
+  if (!account) {
     return Response.json({ error: { message: "Senha atual não confere." } }, { status: 400 });
   }
-  const problem = passwordProblem(String(body.next ?? ""));
-  if (problem) return Response.json({ error: { message: problem } }, { status: 400 });
-  await writePersonalAuth(auth.email, await hashPassword(String(body.next)));
+  await updatePersonalPassword(account.email, await hashPassword(next));
   return Response.json({ ok: true });
 }

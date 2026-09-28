@@ -13,6 +13,7 @@ import {
   Tabs,
 } from "@/components/ui";
 import { AssessmentCompare } from "@/components/assessments/AssessmentCompare";
+import { ExerciseGif } from "@/components/workouts/ExerciseGif";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import type { Assessment, Assignment, Invoice, Student } from "@/lib/mocks";
@@ -176,18 +177,73 @@ export default function AlunoDetalhePage() {
         {assignments.length === 0 ? (
           <Empty title="Nenhum treino atribuído" />
         ) : (
-          <ul className="space-y-2">
-            {assignments.map((a) => (
-              <li key={a.id}>
-                <Card className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{a.workoutTitle}</p>
-                    <p className="text-caption">Início {formatDate(a.startDate)}</p>
-                  </div>
-                  <Badge tone="active">{a.status}</Badge>
-                </Card>
-              </li>
-            ))}
+          <ul className="space-y-4">
+            {assignments.map((a) => {
+              const workout = a.workout;
+              return (
+                <li key={a.id}>
+                  <Card className="space-y-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium">{a.workoutTitle || workout?.title || "Treino"}</p>
+                        <p className="text-caption">
+                          Início {formatDate(a.startDate)}
+                          {workout?.goal ? ` · ${workout.goal}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge tone={a.status === "completed" ? "paused" : "active"}>
+                          {a.status}
+                        </Badge>
+                        <Link href={`/treinos/${a.workoutId}`}>
+                          <Button size="sm">Editar</Button>
+                        </Link>
+                      </div>
+                    </div>
+                    {workout?.blocks?.length ? (
+                      <div className="space-y-3 border-t border-border pt-3">
+                        {workout.blocks.map((block, bi) => (
+                          <div key={bi}>
+                            <h3 className="text-subtitle mb-2">
+                              {block.name ?? `Bloco ${bi + 1}`}
+                            </h3>
+                            <ul className="space-y-2">
+                              {block.exercises.map((ex, ei) => (
+                                <li
+                                  key={ei}
+                                  className="flex items-start gap-3 rounded-[var(--radius-md)] border border-border p-3"
+                                >
+                                  <ExerciseGif name={ex.name} />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-medium">{ex.name}</p>
+                                    <p className="text-caption tabular-nums">
+                                      {ex.sets}×{ex.reps}
+                                      {ex.intensity
+                                        ? ` · ${ex.intensity}`
+                                        : ex.load
+                                          ? ` · ${ex.load}`
+                                          : ""}
+                                      {ex.restSeconds ? ` · ${ex.restSeconds}s` : ""}
+                                    </p>
+                                    {ex.notes ? (
+                                      <p className="mt-1 text-sm text-text-muted">{ex.notes}</p>
+                                    ) : null}
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-text-muted">
+                        Detalhes do treino indisponíveis.
+                      </p>
+                    )}
+                  </Card>
+                </li>
+              );
+            })}
           </ul>
         )}
       </TabPanel>

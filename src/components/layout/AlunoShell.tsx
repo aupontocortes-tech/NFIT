@@ -1,5 +1,6 @@
 "use client";
 
+import { LogoutButton } from "@/components/auth/LogoutButton";
 import { AppName } from "@/components/ui/AppName";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -62,6 +63,7 @@ export function AlunoShell({ children }: { children: ReactNode }) {
           <AppName />
           <p className="text-caption">{name ? `Olá, ${name}` : "Área do aluno"}</p>
         </div>
+        <LogoutButton compact />
       </header>
       {due ? (
         <div className="border-b border-brand bg-brand px-4 py-3 text-sm font-semibold text-text-inverse">

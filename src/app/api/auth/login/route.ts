@@ -1,5 +1,10 @@
-import { readPersonalAuth, writePersonalAuth } from "@/lib/server/personal-auth";
+import {
+  findPersonalByEmail,
+  hasAnyPersonal,
+  writePersonalAuth,
+} from "@/lib/server/personal-auth";
 import { hashPassword, verifyPassword } from "@/lib/server/password";
+import { writeProfile } from "@/lib/server/profile";
 import { studentAuthByEmail } from "@/lib/server/students";
 import { clientIp, rateLimitResponse, tooFast } from "@/lib/server/rate-limit";
 import { sessionSetCookie, signSession } from "@/lib/session-cookie";
@@ -37,20 +42,34 @@ export async function POST(request: Request) {
     );
   }
 
-  const auth = await readPersonalAuth();
-  if (!auth) {
-    return Response.json({ error: { message: "Crie a senha da personal antes de entrar." } }, { status: 409 });
+  const account = await findPersonalByEmail(email);
+  if (!account) {
+    const any = await hasAnyPersonal();
+    return Response.json(
+      {
+        error: {
+          message: any
+            ? "E-mail ou senha não conferem."
+            : "Crie a senha da personal antes de entrar.",
+        },
+      },
+      { status: any ? 401 : 409 },
+    );
   }
-  if (auth.email !== email || !(await verifyPassword(password, auth.passwordHash))) {
+  if (!(await verifyPassword(password, account.passwordHash))) {
     return Response.json({ error: { message: "E-mail ou senha não conferem." } }, { status: 401 });
   }
-  const token = await signSession({ role: "personal" });
+  await writeProfile({
+    email: account.email,
+    ...(account.name ? { name: account.name } : {}),
+  });
+  const token = await signSession({ role: "personal", email: account.email });
   return Response.json({ role: "personal" }, { headers: { "Set-Cookie": sessionSetCookie(token) } });
 }
 
 export async function PUT(request: Request) {
   if (tooFast(`setup:${clientIp(request)}`, 5)) return rateLimitResponse();
-  if (await readPersonalAuth()) {
+  if (await hasAnyPersonal()) {
     return Response.json({ error: { message: "A senha da personal já existe. Entre com ela." } }, { status: 409 });
   }
   let body: { name?: string; email?: string; password?: string };
@@ -66,6 +85,6 @@ export async function PUT(request: Request) {
     return Response.json({ error: { message: problem || "E-mail inválido" } }, { status: 400 });
   }
   await writePersonalAuth(email, await hashPassword(password), body.name);
-  const token = await signSession({ role: "personal" });
+  const token = await signSession({ role: "personal", email });
   return Response.json({ role: "personal" }, { status: 201, headers: { "Set-Cookie": sessionSetCookie(token) } });
 }
