@@ -1,6 +1,6 @@
 import { currentSession, requirePersonal } from "@/lib/server/guard";
 import { hashPassword, verifyPassword } from "@/lib/server/password";
-import { readPersonalAuth, writePersonalAuth } from "@/lib/server/personal-auth";
+import { replacePersonalPassword } from "@/lib/server/personal-auth";
 import { passwordProblem } from "@/lib/validators";
 
 export async function POST(request: Request) {
@@ -13,12 +13,10 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ error: { message: "JSON inválido" } }, { status: 400 });
   }
-  const auth = await readPersonalAuth();
-  if (!auth || !(await verifyPassword(String(body.current ?? ""), auth.passwordHash))) {
-    return Response.json({ error: { message: "Senha atual não confere." } }, { status: 400 });
-  }
-  const problem = passwordProblem(String(body.next ?? ""));
+  const next = String(body.next ?? "");
+  const problem = passwordProblem(next);
   if (problem) return Response.json({ error: { message: problem } }, { status: 400 });
-  await writePersonalAuth(auth.email, await hashPassword(String(body.next)));
+  const ok = await replacePersonalPassword(String(body.current ?? ""), await hashPassword(next), verifyPassword);
+  if (!ok) return Response.json({ error: { message: "Senha atual não confere." } }, { status: 400 });
   return Response.json({ ok: true });
 }

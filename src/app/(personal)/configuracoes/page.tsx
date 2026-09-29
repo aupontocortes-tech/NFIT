@@ -3,6 +3,7 @@
 import { Button, Card, Input, PageHeader, Select, Skeleton, Textarea } from "@/components/ui";
 import { AppearancePicker } from "@/components/ui/ThemeToggle";
 import { OpenAiKeyCard } from "@/components/settings/OpenAiKeyCard";
+import { AnotherPersonalCard } from "@/components/settings/AnotherPersonalCard";
 import { PasswordCard } from "@/components/settings/PasswordCard";
 import { useToast } from "@/components/ui/Toast";
 import { api, type PersonalProfile } from "@/lib/api";
@@ -297,6 +298,7 @@ export default function ConfiguracoesPage() {
       </form>
 
       <PasswordCard />
+      <AnotherPersonalCard />
 
       <Card className="mt-6 max-w-lg space-y-3">
         <h2 className="text-subtitle">Conta</h2>

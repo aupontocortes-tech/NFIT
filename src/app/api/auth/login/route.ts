@@ -1,4 +1,4 @@
-import { readPersonalAuth, writePersonalAuth } from "@/lib/server/personal-auth";
+import { listPersonalAuth, writePersonalAuth } from "@/lib/server/personal-auth";
 import { hashPassword, verifyPassword } from "@/lib/server/password";
 import { studentAuthByEmail } from "@/lib/server/students";
 import { clientIp, rateLimitResponse, tooFast } from "@/lib/server/rate-limit";
@@ -37,11 +37,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const auth = await readPersonalAuth();
-  if (!auth) {
+  const accounts = await listPersonalAuth();
+  if (accounts.length === 0) {
     return Response.json({ error: { message: "Crie a senha da personal antes de entrar." } }, { status: 409 });
   }
-  if (auth.email !== email || !(await verifyPassword(password, auth.passwordHash))) {
+  let matches = false;
+  for (const auth of accounts) {
+    if (auth.email === email && (await verifyPassword(password, auth.passwordHash))) {
+      matches = true;
+      break;
+    }
+  }
+  if (!matches) {
     return Response.json({ error: { message: "E-mail ou senha não conferem." } }, { status: 401 });
   }
   const token = await signSession({ role: "personal" });
@@ -50,7 +57,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   if (tooFast(`setup:${clientIp(request)}`, 5)) return rateLimitResponse();
-  if (await readPersonalAuth()) {
+  if ((await listPersonalAuth()).length > 0) {
     return Response.json({ error: { message: "A senha da personal já existe. Entre com ela." } }, { status: 409 });
   }
   let body: { name?: string; email?: string; password?: string };
