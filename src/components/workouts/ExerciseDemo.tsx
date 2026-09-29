@@ -16,71 +16,17 @@ export function ExerciseGif({
   large?: boolean;
 }) {
   const local = demoId ? `/api/exercicios/gif?id=${encodeURIComponent(demoId)}` : null;
-  const [poster, setPoster] = useState<string | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const touch = useRef(false);
-
-  useEffect(() => {
-    if (!local) return;
-    let cancel = false;
-    const img = new Image();
-    img.onload = () => {
-      if (cancel) return;
-      const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth || 180;
-      canvas.height = img.naturalHeight || 180;
-      canvas.getContext("2d")?.drawImage(img, 0, 0);
-      setPoster(canvas.toDataURL("image/png"));
-    };
-    img.src = local;
-    return () => {
-      cancel = true;
-    };
-  }, [local]);
-
   if (!local) return null;
-
   return (
-    <button
-      type="button"
-      aria-pressed={playing}
-      aria-label={playing ? `Parar execução de ${name}` : `Ver execução de ${name}`}
+    <img
+      src={local}
+      alt={`Execução de ${name}`}
       className={
         large
-          ? "mt-3 block w-full cursor-pointer border-0 bg-transparent p-0 text-left"
-          : "block w-full max-w-[240px] shrink-0 cursor-pointer border-0 bg-transparent p-0 text-left"
+          ? "mt-3 block aspect-square w-full rounded-[var(--radius-md)] border border-border bg-white object-contain"
+          : "block aspect-square w-full max-w-[240px] shrink-0 rounded-[var(--radius-md)] border border-border bg-white object-contain"
       }
-      onPointerDown={(event) => {
-        if (event.pointerType !== "touch") return;
-        touch.current = true;
-        setPlaying((on) => !on);
-      }}
-      onMouseEnter={() => {
-        if (touch.current) return;
-        setPlaying(true);
-      }}
-      onMouseLeave={() => {
-        if (touch.current) {
-          touch.current = false;
-          return;
-        }
-        setPlaying(false);
-      }}
-    >
-      {poster ? (
-        <img
-          key={playing ? "play" : "still"}
-          src={playing ? local : poster}
-          alt={`Execução de ${name}`}
-          className="aspect-square w-full rounded-[var(--radius-md)] border border-border bg-white object-contain"
-        />
-      ) : (
-        <div className="aspect-square w-full rounded-[var(--radius-md)] border border-border bg-white" />
-      )}
-      <span className="mt-1 block text-xs text-text-muted">
-        {playing ? "Toque para parar" : "Passe o mouse ou toque para ver o movimento"}
-      </span>
-    </button>
+    />
   );
 }
 
@@ -146,7 +92,7 @@ export function ExerciseClip({
     >
       <video
         ref={videoRef}
-        src={src}
+        src={`${src}#t=0.1`}
         muted
         loop
         playsInline
