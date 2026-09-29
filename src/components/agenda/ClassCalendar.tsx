@@ -153,11 +153,14 @@ export function ClassCalendar({
   const monthStart = mondayOf(new Date(cursor.getFullYear(), cursor.getMonth(), 1));
   const monthCells = Array.from({ length: 42 }, (_, i) => addDays(monthStart, i));
 
-  function Chip({ event }: { event: EventItem }) {
+  function Chip({ event, compact }: { event: EventItem; compact?: boolean }) {
     const given = event.status === "given";
     const name = event.studentName ?? "Aluno";
     return (
-      <div className="flex items-stretch gap-0.5" onClick={(ev) => ev.stopPropagation()}>
+      <div
+        className={cn("flex gap-0.5", compact ? "flex-col" : "items-stretch")}
+        onClick={(ev) => ev.stopPropagation()}
+      >
         <button
           type="button"
           disabled={readOnly || busy}
@@ -179,13 +182,16 @@ export function ClassCalendar({
             if (!readOnly) onAdjust?.(event);
           }}
           className={cn(
-            "min-w-0 flex-1 cursor-grab truncate rounded-[var(--radius-sm)] border px-1.5 py-1 text-left text-xs font-semibold active:cursor-grabbing",
+            "min-w-0 flex-1 cursor-grab whitespace-normal break-words rounded-[var(--radius-sm)] border px-1.5 py-1 text-left leading-tight active:cursor-grabbing",
             given && "line-through opacity-80",
           )}
-          style={{ backgroundColor: `${colorFor(name)}33`, borderColor: colorFor(name), color: colorFor(name) }}
+          style={{ backgroundColor: colorFor(name), borderColor: colorFor(name), color: "#ffffff" }}
         >
-          {timeLabel(event.startsAt)} {firstName(name)}
-          {given ? " · dada" : ""}
+          <span className={cn("block font-bold", compact ? "text-sm" : "text-base")}>{firstName(name)}</span>
+          <span className={cn("block font-semibold tabular-nums", compact ? "text-xs" : "text-sm")}>
+            {timeLabel(event.startsAt)}
+            {given ? " · dada" : ""}
+          </span>
         </button>
         {!readOnly ? (
           <button
@@ -197,7 +203,8 @@ export function ClassCalendar({
               onGive?.(event);
             }}
             className={cn(
-              "inline-flex w-6 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border",
+              "inline-flex shrink-0 items-center justify-center rounded-[var(--radius-sm)] border",
+              compact ? "h-5 w-full" : "w-6",
               given ? "border-brand bg-brand text-text-inverse" : "border-border text-text-muted",
             )}
           >
@@ -272,7 +279,7 @@ export function ClassCalendar({
                 }}
                 onDrop={(ev) => dropOn(ev, day)}
                 className={cn(
-                  "min-h-24 min-w-0 cursor-pointer rounded-[var(--radius-md)] border bg-[#efe8dc] p-1 text-left dark:bg-[#2a2a2a]",
+                  "min-h-32 min-w-0 cursor-pointer rounded-[var(--radius-md)] border bg-[#efe8dc] p-1 text-left dark:bg-[#2a2a2a]",
                   !tone && "border-border",
                   sameDay(day, new Date()) && "ring-1 ring-brand",
                   ghost === dayKey(day) && "ring-2 ring-brand",
@@ -282,7 +289,7 @@ export function ClassCalendar({
                 <span className={cn("text-xs font-semibold", !inMonth && "opacity-45")}>{day.getDate()}</span>
                 <div className="mt-1 space-y-1">
                   {list.slice(0, 3).map((e) => (
-                    <Chip key={e.id} event={e} />
+                    <Chip key={e.id} event={e} compact />
                   ))}
                   {list.length > 3 ? <span className="text-caption">+{list.length - 3}</span> : null}
                 </div>
@@ -293,7 +300,7 @@ export function ClassCalendar({
       ) : null}
 
       {view === "week" ? (
-        <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-7">
+        <div className="grid min-w-0 grid-cols-1 gap-2 lg:grid-cols-7">
           {week.map((day) => (
             <div
               key={day.toISOString()}
