@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
 import type { Assessment, Student } from "@/lib/mocks";
 import { workoutLevel, workoutLevelLabel, workoutLevels } from "@/lib/workout-level";
+import { formatDate } from "@/lib/utils";
 import { Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
