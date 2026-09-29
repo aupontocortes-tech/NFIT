@@ -13,6 +13,7 @@ import {
   Tabs,
 } from "@/components/ui";
 import { AssessmentCompare } from "@/components/assessments/AssessmentCompare";
+import { StudentWorkoutList } from "@/components/workouts/StudentWorkoutList";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import type { Assessment, Assignment, Invoice, Student } from "@/lib/mocks";
@@ -47,7 +48,11 @@ export default function AlunoDetalhePage() {
   const router = useRouter();
   const { toast } = useToast();
   const [student, setStudent] = useState<Student | null>(null);
-  const [tab, setTab] = useState(search.get("aba") === "avaliacoes" ? "avaliacoes" : "overview");
+  const [tab, setTab] = useState(() => {
+    const aba = search.get("aba");
+    if (aba === "treinos" || aba === "avaliacoes" || aba === "cobrancas") return aba;
+    return "overview";
+  });
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
@@ -91,6 +96,8 @@ export default function AlunoDetalhePage() {
     setAppUrl(`${window.location.origin}/entrar/${data.token}`);
   }
 
+  const activeWorkouts = assignments.filter((item) => item.status === "active").length;
+
   if (!student) {
     return (
       <div className="space-y-4">
@@ -124,7 +131,7 @@ export default function AlunoDetalhePage() {
           <Badge tone={statusTone[student.status]} />
           <p className="text-caption">
             Desde {formatDate(student.createdAt)} ·{" "}
-            {student.activeWorkoutCount ?? 0} treinos ativos
+            {activeWorkouts} treinos ativos
           </p>
         </div>
       </div>
@@ -151,7 +158,7 @@ export default function AlunoDetalhePage() {
           <Card>
             <p className="text-caption">Treinos ativos</p>
             <p className="text-2xl font-bold tabular-nums">
-              {student.activeWorkoutCount ?? 0}
+              {activeWorkouts}
             </p>
           </Card>
           <Card>
@@ -173,23 +180,12 @@ export default function AlunoDetalhePage() {
       </TabPanel>
 
       <TabPanel when="treinos" active={tab}>
-        {assignments.length === 0 ? (
-          <Empty title="Nenhum treino atribuído" />
-        ) : (
-          <ul className="space-y-2">
-            {assignments.map((a) => (
-              <li key={a.id}>
-                <Card className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{a.workoutTitle}</p>
-                    <p className="text-caption">Início {formatDate(a.startDate)}</p>
-                  </div>
-                  <Badge tone="active">{a.status}</Badge>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
+        <StudentWorkoutList
+          items={assignments}
+          onDeleted={(assignmentId) =>
+            setAssignments((current) => current.filter((item) => item.id !== assignmentId))
+          }
+        />
       </TabPanel>
 
       <TabPanel when="cobrancas" active={tab}>

@@ -1,5 +1,7 @@
 "use client";
 
+import { ExerciseDemoField } from "@/components/workouts/ExerciseDemo";
+import { exerciseColor } from "@/lib/exercise-color";
 import {
   Badge,
   Button,
@@ -11,7 +13,7 @@ import {
 } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
-import type { Workout } from "@/lib/mocks";
+import type { Exercise, Workout } from "@/lib/mocks";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -28,6 +30,25 @@ export default function TreinoDetalhePage() {
 
   if (!workout) {
     return <Skeleton className="h-64 w-full" />;
+  }
+
+  function updateExercise(blockIndex: number, exerciseIndex: number, patch: Partial<Exercise>) {
+    setWorkout((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        blocks: current.blocks.map((block, index) =>
+          index === blockIndex
+            ? {
+                ...block,
+                exercises: block.exercises.map((exercise, itemIndex) =>
+                  itemIndex === exerciseIndex ? { ...exercise, ...patch } : exercise,
+                ),
+              }
+            : block,
+        ),
+      };
+    });
   }
 
   async function save() {
@@ -67,6 +88,7 @@ export default function TreinoDetalhePage() {
           }
         />
         {workout.generatedByAi ? <Badge tone="ai" /> : null}
+        {workout.level ? <Badge>{workout.level}</Badge> : null}
       </div>
 
       <Card className="mb-4 space-y-3">
@@ -93,22 +115,58 @@ export default function TreinoDetalhePage() {
             {block.name ?? `Bloco ${bi + 1}`}
           </h3>
           <ul className="space-y-3">
-            {block.exercises.map((ex, ei) => (
+            {block.exercises.map((ex, ei) => {
+              const color = exerciseColor(
+                workout.blocks.slice(0, bi).reduce((total, item) => total + item.exercises.length, 0) + ei,
+              );
+              return (
               <li
                 key={ei}
-                className="rounded-[var(--radius-md)] border border-border p-3"
+                className="rounded-[var(--radius-md)] border border-border border-l-4 p-3"
+                style={{ borderLeftColor: color }}
               >
-                <p className="font-medium">{ex.name}</p>
-                <p className="text-caption tabular-nums">
-                  {ex.sets}×{ex.reps}
-                  {ex.load ? ` · ${ex.load}` : ""}
-                  {ex.restSeconds ? ` · descanso ${ex.restSeconds}s` : ""}
-                </p>
+                <Input
+                  label="Exercício"
+                  value={ex.name}
+                  style={{ color }}
+                  onChange={(event) =>
+                    updateExercise(bi, ei, { name: event.target.value, demoId: undefined })
+                  }
+                />
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <Input
+                    label="Séries"
+                    value={String(ex.sets)}
+                    onChange={(event) =>
+                      updateExercise(bi, ei, { sets: Number(event.target.value.replace(/\D/g, "")) || 0 })
+                    }
+                  />
+                  <Input
+                    label="Repetições"
+                    value={ex.reps}
+                    onChange={(event) => updateExercise(bi, ei, { reps: event.target.value })}
+                  />
+                  <Input
+                    label="Descanso (s)"
+                    value={ex.restSeconds ? String(ex.restSeconds) : ""}
+                    onChange={(event) =>
+                      updateExercise(bi, ei, {
+                        restSeconds: Number(event.target.value.replace(/\D/g, "")) || undefined,
+                      })
+                    }
+                  />
+                </div>
+                <ExerciseDemoField
+                  demoId={ex.demoId}
+                  name={ex.name}
+                  onPick={(item) => updateExercise(bi, ei, { demoId: item.id })}
+                />
                 {ex.notes ? (
                   <p className="mt-1 text-sm text-text-muted">{ex.notes}</p>
                 ) : null}
               </li>
-            ))}
+              );
+            })}
           </ul>
         </Card>
       ))}

@@ -5,6 +5,7 @@ import {
 } from "@/lib/server/ai-workout";
 import { getOpenAiKey } from "@/lib/server/openai-key";
 import { currentSession, requirePersonal } from "@/lib/server/guard";
+import { workoutLevelLabel } from "@/lib/workout-level";
 
 // Limite simples por IP para não estourar a cota grátis
 const hits = new Map<string, number[]>();
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
 
   const input: WorkoutInput = {
     goal: String(body.goal ?? "").slice(0, 60) || "Condicionamento",
-    level: String(body.level ?? "").slice(0, 30) || "Intermediário",
+    level: String(workoutLevelLabel(body.level)).slice(0, 30),
     daysPerWeek: Math.min(7, Math.max(1, Number(body.daysPerWeek) || 3)),
     sessionMinutes: Math.min(180, Math.max(15, Number(body.sessionMinutes) || 60)),
     equipment: body.equipment ? String(body.equipment).slice(0, 120) : undefined,

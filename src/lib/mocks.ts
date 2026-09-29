@@ -41,6 +41,8 @@ export interface Exercise {
   notes?: string;
   /** Alternativas do mesmo grupo muscular (rascunhos IA). */
   alternatives?: string[];
+  /** Código do GIF na biblioteca de exercícios. A imagem não fica no banco. */
+  demoId?: string;
   order: number;
 }
 
@@ -59,6 +61,8 @@ export interface Workout {
   status: WorkoutStatus;
   generatedByAi: boolean;
   notes?: string;
+  /** Iniciante, Intermediário ou Experiente. */
+  level?: string;
   /** Avisos da IA (dados faltantes, dor/lesão, revisão humana). */
   warnings?: string[];
   blocks: WorkoutBlock[];

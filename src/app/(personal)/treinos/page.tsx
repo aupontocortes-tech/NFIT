@@ -1,111 +1,97 @@
 "use client";
 
-import {
-  Badge,
-  Button,
-  Empty,
-  PageHeader,
-  SkeletonList,
-} from "@/components/ui";
+import { StudentWorkoutList } from "@/components/workouts/StudentWorkoutList";
+import { Button, Empty, PageHeader, Select, SkeletonList } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { Workout } from "@/lib/mocks";
-import { formatDate } from "@/lib/utils";
+import type { Assignment, Student } from "@/lib/mocks";
 import { Dumbbell, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export default function TreinosPage() {
-  const [result, setResult] = useState<{ key: string; items: Workout[] } | null>(null);
-  const [status, setStatus] = useState("");
+const studentKey = "nfit_treino_aluno";
 
-  // Busca de novo quando o filtro muda; ignora respostas antigas
-  const key = status;
+export default function TreinosPage() {
+  const search = useSearchParams();
+  const [students, setStudents] = useState<Student[]>([]);
+  const [studentId, setStudentId] = useState("");
+  const [items, setItems] = useState<Assignment[] | null>(null);
+
   useEffect(() => {
+    const fromUrl = search.get("aluno") ?? "";
+    const saved = typeof sessionStorage !== "undefined" ? sessionStorage.getItem(studentKey) ?? "" : "";
+    setStudentId(fromUrl || saved);
+    api.listStudents({ status: "active" }).then((r) => setStudents(r.items)).catch(() => setStudents([]));
+  }, [search]);
+
+  useEffect(() => {
+    if (!studentId) {
+      setItems([]);
+      return;
+    }
     let alive = true;
+    setItems(null);
     api
-      .listWorkouts({ status: status || undefined })
-      .then((r) => alive && setResult({ key, items: r.items }));
+      .listAssignments({ studentId })
+      .then((assigned) => alive && setItems(assigned))
+      .catch(() => alive && setItems([]));
     return () => {
       alive = false;
     };
-  }, [key, status]);
-  const items = result?.key === key ? result.items : null;
+  }, [studentId]);
+
+  function choose(id: string) {
+    setStudentId(id);
+    if (id) sessionStorage.setItem(studentKey, id);
+    else sessionStorage.removeItem(studentKey);
+  }
+
+  const query = studentId ? `?aluno=${encodeURIComponent(studentId)}` : "";
 
   return (
     <div>
       <PageHeader
         title="Treinos"
+        description="Só aparecem os treinos do aluno escolhido."
         action={
           <>
-            <Link href="/treinos/gerar">
+            <Link href={`/treinos/gerar${query}`}>
               <Button variant="ai" size="sm">
                 <Sparkles className="h-4 w-4" />
                 Gerar com IA
               </Button>
             </Link>
-            <Link href="/treinos/novo">
-              <Button size="sm">Novo treino</Button>
+            <Link href={`/treinos/novo${query}`}>
+              <Button size="sm">Montar sem IA</Button>
             </Link>
           </>
         }
       />
-      <div className="mb-4">
-        <select
-          className="h-11 rounded-[var(--radius-md)] border border-border bg-surface px-3 text-sm"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          <option value="">Todos</option>
-          <option value="draft">Rascunhos</option>
-          <option value="template">Templates</option>
-          <option value="archived">Arquivados</option>
-        </select>
+      <div className="mb-4 max-w-md">
+        <Select label="Aluno" value={studentId} onChange={(e) => choose(e.target.value)}>
+          <option value="">Escolha o aluno</option>
+          {students.map((student) => (
+            <option key={student.id} value={student.id}>
+              {student.name}
+            </option>
+          ))}
+        </Select>
       </div>
-      {!items ? (
-        <SkeletonList />
-      ) : items.length === 0 ? (
+      {!studentId ? (
         <Empty
           icon={Dumbbell}
-          title="Nenhum treino"
-          description="Crie manualmente ou gere um rascunho com IA."
-          action={
-            <Link href="/treinos/gerar">
-              <Button variant="ai">
-                <Sparkles className="h-4 w-4" />
-                Gerar com IA
-              </Button>
-            </Link>
+          title="Escolha o aluno"
+          description="A lista mostra só os treinos desse aluno. O GIF fica dentro de cada exercício."
+        />
+      ) : !items ? (
+        <SkeletonList />
+      ) : (
+        <StudentWorkoutList
+          items={items}
+          onDeleted={(assignmentId) =>
+            setItems((current) => (current ?? []).filter((item) => item.id !== assignmentId))
           }
         />
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {items.map((w) => (
-            <li key={w.id}>
-              <Link
-                href={`/treinos/${w.id}`}
-                className="block rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-sm transition hover:bg-hover"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-medium">{w.title}</p>
-                  <Badge
-                    tone={
-                      w.status === "draft"
-                        ? "draft"
-                        : w.status === "archived"
-                          ? "paused"
-                          : "active"
-                    }
-                  />
-                  {w.generatedByAi ? <Badge tone="ai" /> : null}
-                </div>
-                <p className="mt-1 text-caption">
-                  {w.goal ?? "Sem objetivo"} · {w.exerciseCount} exercícios ·{" "}
-                  {formatDate(w.updatedAt)}
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
       )}
     </div>
   );

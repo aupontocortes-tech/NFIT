@@ -9,6 +9,8 @@
  * Sem nenhum, a rota responde 501 e o app usa o exemplo.
  */
 
+import { levelSetBounds, workoutLevel, workoutLevelRules } from "@/lib/workout-level";
+
 export type WorkoutInput = {
   goal: string;
   daysPerWeek: number;
@@ -83,7 +85,7 @@ APRENDIZADO (futuro, não implementar agora): correções do personal, treinos p
 function userPrompt(i: WorkoutInput) {
   return `Crie um plano de treino (RASCUNHO) com estes dados:
 - Objetivo: ${i.goal}
-- Nível: ${i.level}
+- ${workoutLevelRules(i.level)}
 - Dias por semana: ${i.daysPerWeek} (crie exatamente ${i.daysPerWeek} blocos, um por dia)
 - Duração por sessão: ${i.sessionMinutes} minutos
 - Equipamentos: ${i.equipment || "não informado"}
@@ -205,14 +207,16 @@ export function normalizeWorkout(raw: unknown, input: WorkoutInput): AiWorkout {
           const ee = (e ?? {}) as Record<string, unknown>;
           const name = str(ee.name, 80);
           if (!name) return null;
-          const intensity = str(ee.intensity, 40) || undefined;
+          const band = levelSetBounds(input.level);
+          const given = str(ee.intensity, 40);
+          const intensity = given || (workoutLevel(input.level) === "iniciante" ? "RPE 6" : undefined);
           const alternatives = normalizeStringList(ee.alternatives, 80, 5);
           return {
             name,
-            sets: int(ee.sets, 1, 10, 3),
+            sets: int(ee.sets, band.min, band.max, band.fallback),
             reps: str(typeof ee.reps === "number" ? String(ee.reps) : ee.reps, 20, "10-12"),
             intensity,
-            restSeconds: int(ee.restSeconds, 15, 300, 60),
+            restSeconds: int(ee.restSeconds, 15, band.restMax, 60),
             notes: str(ee.notes, 160) || undefined,
             alternatives,
             order: ei,

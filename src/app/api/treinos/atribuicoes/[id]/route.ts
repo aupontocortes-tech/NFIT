@@ -1,5 +1,5 @@
-import { completeAssignment, getAssignment } from "@/lib/server/workouts";
-import { currentSession, requireStudentAccess } from "@/lib/server/guard";
+import { completeAssignment, deleteAssignment, getAssignment } from "@/lib/server/workouts";
+import { currentSession, requirePersonal, requireStudentAccess } from "@/lib/server/guard";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -30,5 +30,19 @@ export async function POST(request: Request, ctx: Ctx) {
   } catch (e) {
     console.error("[treinos]", e);
     return Response.json({ error: { message: "Não foi possível concluir o treino." } }, { status: 503 });
+  }
+}
+
+export async function DELETE(request: Request, ctx: Ctx) {
+  const denied = requirePersonal(await currentSession(request));
+  if (denied) return denied;
+  const { id } = await ctx.params;
+  try {
+    const removed = await deleteAssignment(id);
+    if (!removed) return Response.json({ error: { message: "Treino não encontrado" } }, { status: 404 });
+    return Response.json({ ok: true });
+  } catch (e) {
+    console.error("[treinos]", e);
+    return Response.json({ error: { message: "Não foi possível excluir o treino." } }, { status: 503 });
   }
 }

@@ -27,6 +27,7 @@ import {
 } from "./mocks";
 import { compressImage } from "./images";
 import type { PixConfig } from "./pix";
+import { levelSetBounds, workoutLevelLabel } from "./workout-level";
 
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:3001/api/v1";
@@ -285,6 +286,24 @@ type AiDraftResponse = {
 
 const AI_LAST_INPUT_KEY = "nfit_ai_last_input";
 
+function applyLevel(workout: Workout, level: string): Workout {
+  const label = workoutLevelLabel(level);
+  const band = levelSetBounds(level);
+  return {
+    ...workout,
+    level: label,
+    blocks: workout.blocks.map((block) => ({
+      ...block,
+      exercises: block.exercises.map((exercise) => ({
+        ...exercise,
+        sets: Math.min(band.max, Math.max(band.min, exercise.sets || band.fallback)),
+        restSeconds: Math.min(band.restMax, exercise.restSeconds ?? 60),
+        intensity: label === "Iniciante" ? exercise.intensity && !exercise.intensity.includes("%") ? exercise.intensity : "RPE 6" : exercise.intensity,
+      })),
+    })),
+  };
+}
+
 /**
  * Sem backend: chama a rota do próprio Next (/api/ia/treino), que usa
  * Gemini, Groq ou Ollama grátis. Se nenhuma IA estiver configurada, usa o exemplo.
@@ -313,7 +332,10 @@ async function generateWithLocalAi(input: {
       draftId: "draft-mock-001",
       generatedByAi: true,
       status: "draft",
-      workout: { ...aiDraftFixture, id: "w-ai-draft", updatedAt: new Date().toISOString() },
+      workout: applyLevel(
+        { ...aiDraftFixture, id: "w-ai-draft", updatedAt: new Date().toISOString() },
+        input.level,
+      ),
       modelMeta: { requestId, provider: "exemplo" },
     };
   }
@@ -326,14 +348,17 @@ async function generateWithLocalAi(input: {
     draftId: `draft-${Date.now()}`,
     generatedByAi: true,
     status: "draft",
-    workout: {
-      ...w,
-      id: "w-ai-draft",
-      status: "draft",
-      generatedByAi: true,
-      updatedAt: new Date().toISOString(),
-      exerciseCount: w.blocks.reduce((n, b) => n + b.exercises.length, 0),
-    },
+    workout: applyLevel(
+      {
+        ...w,
+        id: "w-ai-draft",
+        status: "draft",
+        generatedByAi: true,
+        updatedAt: new Date().toISOString(),
+        exerciseCount: w.blocks.reduce((n, b) => n + b.exercises.length, 0),
+      },
+      input.level,
+    ),
     modelMeta: { requestId, provider: data.provider },
   };
 }
@@ -679,6 +704,12 @@ export const api = {
     const data = await res.json().catch(() => null);
     if (!res.ok) throw new ApiError(data?.error?.message ?? "Não foi possível ler os treinos do aluno", res.status);
     return (data?.items ?? []) as Assignment[];
+  },
+
+  async deleteAssignment(id: string) {
+    const res = await fetch(`/api/treinos/atribuicoes/${id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(data?.error?.message ?? "Não foi possível excluir o treino", res.status);
   },
 
   async getAssignment(id: string) {

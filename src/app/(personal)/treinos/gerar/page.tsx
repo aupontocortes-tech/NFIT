@@ -11,13 +11,15 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
 import type { Assessment, Student } from "@/lib/mocks";
-import { formatDate } from "@/lib/utils";
+import { workoutLevel, workoutLevelLabel, workoutLevels } from "@/lib/workout-level";
 import { Sparkles } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function GerarIaPage() {
   const router = useRouter();
+  const search = useSearchParams();
   const { toast } = useToast();
   const [students, setStudents] = useState<Student[]>([]);
   const [latest, setLatest] = useState<Assessment | null>(null);
@@ -29,15 +31,17 @@ export default function GerarIaPage() {
     goal: "Hipertrofia",
     daysPerWeek: "3",
     sessionMinutes: "60",
-    level: "intermediate",
+    level: "intermediario",
     constraints: "",
     equipment: "Academia completa",
     prompt: "",
   });
 
   useEffect(() => {
+    const aluno = search.get("aluno") ?? "";
+    if (aluno) setForm((current) => ({ ...current, studentId: aluno }));
     api.listStudents().then((r) => setStudents(r.items));
-  }, []);
+  }, [search]);
 
   useEffect(() => {
     if (!form.studentId) {
@@ -101,7 +105,7 @@ export default function GerarIaPage() {
         goal: form.goal,
         daysPerWeek: Number(form.daysPerWeek),
         sessionMinutes: Number(form.sessionMinutes),
-        level: form.level,
+        level: workoutLevelLabel(form.level),
         constraints: form.constraints || undefined,
         equipment: form.equipment || undefined,
         prompt: form.prompt || undefined,
@@ -135,61 +139,88 @@ export default function GerarIaPage() {
       <PageHeader
         title="Gerar com IA"
         description="A IA só cria rascunho. Você revisa e decide se salva ou atribui."
+        action={
+          <Link href={`/treinos/novo${search.get("aluno") ? `?aluno=${encodeURIComponent(search.get("aluno") ?? "")}` : ""}`}>
+            <Button variant="secondary" size="sm">Montar sem IA</Button>
+          </Link>
+        }
       />
-      <Card className="max-w-2xl">
-        <div className="mb-4 rounded-[var(--radius-md)] bg-ai/60 px-3 py-2 text-sm text-ai-text">
-          Revisão obrigatória — o treino nunca é publicado automaticamente.
+      <Card className="max-w-3xl overflow-hidden">
+        <div className="bg-gradient-to-r from-[#7c3aed] via-[#e50914] to-[#f97316] px-5 py-4 text-white">
+          <p className="text-sm font-semibold uppercase tracking-wide text-white/80">Rascunho para revisar</p>
+          <p className="mt-1 text-lg font-semibold">O treino só vai para o aluno depois que você salvar.</p>
         </div>
-        <form onSubmit={onGenerate} className="grid gap-4 sm:grid-cols-2">
-          <Select
-            label="Aluno"
-            value={form.studentId}
-            onChange={(e) => setForm({ ...form, studentId: e.target.value })}
-            className="sm:col-span-2"
-          >
-            <option value="">Sem aluno</option>
-            {students.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </Select>
-          {form.studentId && checking ? (
-            <p className="text-sm text-text-muted sm:col-span-2">Procurando a avaliação enviada…</p>
-          ) : null}
-          {form.studentId && !checking && latest ? (
-            <p className="rounded-[var(--radius-md)] bg-fill px-3 py-2 text-sm sm:col-span-2">
-              A IA vai usar a avaliação enviada em {formatDate(latest.date)}.
-            </p>
-          ) : null}
-          {(!form.studentId || (!checking && !latest)) ? (
-            <label className="flex items-start gap-2 text-sm sm:col-span-2">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={allowWithout}
-                onChange={(e) => setAllowWithout(e.target.checked)}
-              />
-              <span>
-                O ideal é a cliente ter enviado a avaliação pelo link. Sem ela, o treino fica mais genérico. Gerar mesmo assim.
-              </span>
-            </label>
-          ) : null}
-          <Input
-            label="Objetivo"
-            value={form.goal}
-            onChange={(e) => setForm({ ...form, goal: e.target.value })}
-            required
-          />
-          <Select
-            label="Nível"
-            value={form.level}
-            onChange={(e) => setForm({ ...form, level: e.target.value })}
-          >
-            <option value="beginner">Iniciante</option>
-            <option value="intermediate">Intermediário</option>
-            <option value="advanced">Avançado</option>
-          </Select>
+        <form onSubmit={onGenerate} className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-[var(--radius-md)] border border-[#3b82f6] bg-[#3b82f6]/10 p-3 sm:col-span-2">
+            <Select
+              label="Aluno"
+              value={form.studentId}
+              onChange={(e) => setForm({ ...form, studentId: e.target.value })}
+            >
+              <option value="">Sem aluno</option>
+              {students.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
+            {form.studentId && checking ? (
+              <p className="mt-2 text-sm text-text-muted">Procurando a avaliação enviada…</p>
+            ) : null}
+            {form.studentId && !checking && latest ? (
+              <p className="mt-2 rounded-[var(--radius-md)] bg-[#22c55e]/15 px-3 py-2 text-sm text-[#22c55e]">
+                A IA vai usar a avaliação enviada em {formatDate(latest.date)}.
+              </p>
+            ) : null}
+            {(!form.studentId || (!checking && !latest)) ? (
+              <label className="mt-3 flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={allowWithout}
+                  onChange={(e) => setAllowWithout(e.target.checked)}
+                />
+                <span>
+                  O ideal é a cliente ter enviado a avaliação pelo link. Sem ela, o treino fica mais genérico. Gerar mesmo assim.
+                </span>
+              </label>
+            ) : null}
+          </div>
+          <div className="rounded-[var(--radius-md)] border border-[#a855f7] bg-[#a855f7]/10 p-3 sm:col-span-2">
+            <Input
+              label="Objetivo"
+              value={form.goal}
+              onChange={(e) => setForm({ ...form, goal: e.target.value })}
+              required
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <p className="mb-2 text-base font-semibold text-text">Nível</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {workoutLevels.map((item) => {
+                const selected = workoutLevel(form.level) === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setForm({ ...form, level: item.id })}
+                    className="rounded-[var(--radius-md)] border-2 px-3 py-3 text-left"
+                    style={{
+                      borderColor: item.color,
+                      backgroundColor: selected ? item.color : `${item.color}22`,
+                      color: selected ? "#ffffff" : item.color,
+                    }}
+                  >
+                    <span className="block text-base font-semibold">{item.label}</span>
+                    <span className="mt-1 block text-sm" style={{ color: selected ? "#ffffff" : undefined }}>
+                      {item.hint}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <Input
             label="Dias/semana"
             type="number"

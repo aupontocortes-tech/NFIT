@@ -120,7 +120,7 @@ describe("normalização da resposta da IA", () => {
     expect(w.blocks[0].exercises[0].restSeconds).toBe(90);
   });
 
-  it("limita séries (max 10) e descanso (15–300s)", () => {
+  it("limita séries do nível experiente e o descanso mínimo", () => {
     const w = normalizeWorkout(
       {
         blocks: [
@@ -133,7 +133,7 @@ describe("normalização da resposta da IA", () => {
       },
       input,
     );
-    expect(w.blocks[0].exercises[0].sets).toBe(10);
+    expect(w.blocks[0].exercises[0].sets).toBe(5);
     expect(w.blocks[0].exercises[0].restSeconds).toBe(15);
   });
 

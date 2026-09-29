@@ -1,5 +1,6 @@
 "use client";
 
+import { ExerciseDemoField } from "@/components/workouts/ExerciseDemo";
 import {
   Badge,
   Button,
@@ -116,6 +117,7 @@ export default function RascunhoIaPage() {
       <div className="mb-4 flex flex-wrap gap-2">
         <Badge tone="draft" />
         <Badge tone="ai" />
+        {workout.level ? <Badge>{workout.level}</Badge> : null}
       </div>
 
       {warnings.length > 0 ? (
@@ -193,6 +195,22 @@ export default function RascunhoIaPage() {
                   {ex.intensity ? ` · ${ex.intensity}` : ex.load ? ` · ${ex.load}` : ""}
                   {ex.restSeconds ? ` · ${ex.restSeconds}s` : ""}
                 </p>
+                <ExerciseDemoField
+                  demoId={ex.demoId}
+                  name={ex.name}
+                  onPick={(item) => {
+                    const blocks = [...workout.blocks];
+                    blocks[bi] = {
+                      ...block,
+                      exercises: block.exercises.map((x, i) =>
+                        i === ei
+                          ? { ...x, demoId: item.id, name: x.name.trim() ? x.name : item.name }
+                          : x,
+                      ),
+                    };
+                    setWorkout({ ...workout, blocks });
+                  }}
+                />
                 {ex.notes ? (
                   <p className="mt-1 text-sm text-text-muted">{ex.notes}</p>
                 ) : null}
