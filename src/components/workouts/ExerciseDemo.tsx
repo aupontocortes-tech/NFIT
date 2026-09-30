@@ -106,6 +106,21 @@ export function ExerciseClip({
   );
 }
 
+export function ExerciseMissing({ large }: { large?: boolean }) {
+  return (
+    <div
+      className={
+        large
+          ? "mt-3 flex aspect-square w-full items-center justify-center rounded-[var(--radius-md)] border border-border bg-fill"
+          : "flex aspect-square w-full max-w-[240px] shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-border bg-fill"
+      }
+      aria-label="Sem demonstração"
+    >
+      <span className="text-6xl font-bold leading-none text-text-muted">?</span>
+    </div>
+  );
+}
+
 export function ExercisePlayback({
   name,
   demoId,
@@ -117,7 +132,8 @@ export function ExercisePlayback({
 }) {
   const media = resolveExerciseMedia(name, demoId);
   if (media?.type === "video") return <ExerciseClip large={large} videoId={media.id} name={name} />;
-  return <ExerciseGif large={large} demoId={media?.type === "gif" ? media.id : null} name={name} />;
+  if (media?.type === "gif" && media.id) return <ExerciseGif large={large} demoId={media.id} name={name} />;
+  return <ExerciseMissing large={large} />;
 }
 
 export function ExerciseDemoField({
@@ -137,14 +153,9 @@ export function ExerciseDemoField({
     <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start">
       <ExercisePlayback demoId={demoId} name={name} />
       <div className="min-w-0 flex-1">
-        {!demoId && media?.type === "gif" ? (
-          <p className="mb-2 text-xs text-text-muted">
-            O desenho pode ser parecido, e não o exercício exato. Troque o GIF ou mude o nome acima.
-          </p>
-        ) : null}
         {!demoId && media?.type === "video" ? (
           <p className="mb-2 text-xs text-text-muted">
-            Não há GIF desta máquina. O vídeo entra no lugar. Você ainda pode trocar o desenho.
+            Não há GIF deste exercício. O vídeo entra no lugar.
           </p>
         ) : null}
         {showSearch ? (

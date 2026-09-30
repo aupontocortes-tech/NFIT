@@ -10,6 +10,15 @@ const videoRules: [string, string][] = [
   ["mesa flexora", "0075"],
   ["flexora deitada", "0075"],
   ["lying leg curl", "0075"],
+  ["cadeira extensora", "0073"],
+  ["leg extension", "0073"],
+  ["voador", "0051"],
+  ["peck deck", "0051"],
+  ["pec deck", "0051"],
+  ["hip thrust", "0057"],
+  ["elevacao pelvica", "0057"],
+  ["afundo bulgaro", "0055"],
+  ["agachamento bulgaro", "0055"],
 ];
 
 function fold(value: string) {

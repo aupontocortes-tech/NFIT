@@ -1,8 +1,7 @@
 "use client";
 
-import { ExercisePlayback, ExerciseSearch } from "@/components/workouts/ExerciseDemo";
+import { ExercisePlayback } from "@/components/workouts/ExerciseDemo";
 import { exerciseColor } from "@/lib/exercise-color";
-import { resolveExerciseMedia } from "@/lib/vital-video";
 import { Button, Card, Input, PageHeader, Skeleton } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { api, ApiError } from "@/lib/api";
@@ -19,7 +18,6 @@ export default function ExecutarTreinoPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
-  const [chosen, setChosen] = useState<Record<string, string>>({});
   const [sets, setSets] = useState<Record<string, SetState[]>>({});
   const [notes, setNotes] = useState("");
   const [finishing, setFinishing] = useState(false);
@@ -42,27 +40,6 @@ export default function ExecutarTreinoPage() {
       setSets(map);
     });
   }, [atribuicaoId]);
-
-  useEffect(() => {
-    if (!assignment?.workout) return;
-    assignment.workout.blocks.forEach((block, bi) => {
-      block.exercises.forEach((ex, ei) => {
-        if (ex.demoId || ex.name.trim().length < 3) return;
-        const key = `${bi}-${ei}`;
-        const params = new URLSearchParams({ q: ex.name });
-        fetch(`/api/exercicios?${params}`)
-          .then((r) => (r.ok ? r.json() : { items: [] }))
-          .then((data: { items?: { id: string; name: string }[] }) => {
-            const items = data.items ?? [];
-            const exact = items.find((item) => item.name.toLowerCase() === ex.name.trim().toLowerCase());
-            const hit = exact ?? (items.length === 1 ? items[0] : null);
-            if (!hit) return;
-            setChosen((prev) => (prev[key] ? prev : { ...prev, [key]: hit.id }));
-          })
-          .catch(() => undefined);
-      });
-    });
-  }, [assignment]);
 
   function toggleSet(key: string, idx: number) {
     setSets((prev) => ({
@@ -115,7 +92,6 @@ export default function ExecutarTreinoPage() {
             const color = exerciseColor(
               w.blocks.slice(0, bi).reduce((total, item) => total + item.exercises.length, 0) + ei,
             );
-            const media = resolveExerciseMedia(ex.name, chosen[key] || ex.demoId);
             return (
               <Card key={key} className="mb-3 border-l-4" style={{ borderLeftColor: color }}>
                 <p className="text-title" style={{ color }}>{ex.name}</p>
@@ -123,13 +99,7 @@ export default function ExecutarTreinoPage() {
                   Meta: {ex.sets}×{ex.reps}
                   {ex.restSeconds ? ` · descanso ${ex.restSeconds}s` : ""}
                 </p>
-                {media ? (
-                  <ExercisePlayback large name={ex.name} demoId={chosen[key] || ex.demoId} />
-                ) : (
-                  <ExerciseSearch
-                    onPick={(item) => setChosen((prev) => ({ ...prev, [key]: item.id }))}
-                  />
-                )}
+                <ExercisePlayback large name={ex.name} demoId={ex.demoId} />
                 <ul className="mt-3 space-y-2">
                   {(sets[key] ?? []).map((s, si) => (
                     <li key={si} className="flex items-center gap-2">
