@@ -258,7 +258,70 @@ export function ClassCalendar({
       ) : null}
 
       {view === "month" ? (
-        <div className="grid min-w-0 grid-cols-7 gap-1">
+        <>
+          <div className="space-y-2 md:hidden">
+            {monthCells
+              .filter((day) => day.getMonth() === cursor.getMonth())
+              .map((day) => {
+                const list = eventsOn(day);
+                return (
+                  <div key={day.toISOString()} className="rounded-[var(--radius-md)] border border-border bg-[#efe8dc] p-2 dark:bg-[#2a2a2a]">
+                    <button type="button" className="mb-1 text-sm font-semibold" onClick={() => openEmpty(day)}>
+                      {WEEKDAYS[(day.getDay() + 6) % 7]} {day.getDate()}
+                    </button>
+                    {list.length === 0 ? (
+                      <p className="text-sm text-text-muted">Livre</p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {list.map((event) => {
+                          const name = event.studentName ?? "Aluno";
+                          const color = colorFor(name);
+                          const given = event.status === "given";
+                          return (
+                            <li key={event.id}>
+                              <div
+                                className="flex items-center gap-2 rounded-[var(--radius-md)] px-3 py-3"
+                                style={{ backgroundColor: color, color: "#ffffff" }}
+                              >
+                                <button
+                                  type="button"
+                                  className="min-w-0 flex-1 text-left"
+                                  onClick={(ev) => {
+                                    ev.stopPropagation();
+                                    if (!readOnly) onAdjust?.(event);
+                                  }}
+                                >
+                                  <span className={cn("block text-lg font-bold", given && "line-through")}>{firstName(name)}</span>
+                                </button>
+                                <span className="shrink-0 text-xl font-bold tabular-nums">{timeLabel(event.startsAt)}</span>
+                                {!readOnly ? (
+                                  <button
+                                    type="button"
+                                    aria-label={given ? "Desfazer aula dada" : "Marcar aula como dada"}
+                                    aria-pressed={given}
+                                    onClick={(ev) => {
+                                      ev.stopPropagation();
+                                      onGive?.(event);
+                                    }}
+                                    className={cn(
+                                      "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/40",
+                                      given ? "bg-white text-black" : "bg-transparent text-white",
+                                    )}
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </button>
+                                ) : null}
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+          <div className="hidden min-w-0 grid-cols-7 gap-1 md:grid">
           {WEEKDAYS.map((d) => (
             <p key={d} className="truncate px-1 py-1 text-center text-caption">
               {d}
@@ -296,7 +359,8 @@ export function ClassCalendar({
               </div>
             );
           })}
-        </div>
+          </div>
+        </>
       ) : null}
 
       {view === "week" ? (
