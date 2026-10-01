@@ -71,3 +71,9 @@ export function resolveExerciseMedia(name: string, demoId?: string | null): Exer
   if (video) return { type: "video", id: video };
   return null;
 }
+
+export function mediaKeyForName(name: string) {
+  const media = resolveExerciseMedia(name, null);
+  if (!media) return undefined;
+  return media.type === "video" ? `video:${media.id}` : media.id;
+}

@@ -2,6 +2,7 @@
 
 import { ExerciseDemoField } from "@/components/workouts/ExerciseDemo";
 import { exerciseColor } from "@/lib/exercise-color";
+import { mediaKeyForName } from "@/lib/vital-video";
 import {
   Badge,
   Button,
@@ -130,7 +131,10 @@ export default function TreinoDetalhePage() {
                   value={ex.name}
                   style={{ color }}
                   onChange={(event) =>
-                    updateExercise(bi, ei, { name: event.target.value, demoId: undefined })
+                    updateExercise(bi, ei, {
+                      name: event.target.value,
+                      demoId: mediaKeyForName(event.target.value),
+                    })
                   }
                 />
                 <div className="mt-3 grid grid-cols-3 gap-2">

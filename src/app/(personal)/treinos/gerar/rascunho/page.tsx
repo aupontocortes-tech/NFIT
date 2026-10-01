@@ -12,7 +12,8 @@ import {
 } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { api, ApiError } from "@/lib/api";
-import { aiDraftFixture, type Student, type Workout } from "@/lib/mocks";
+import { aiDraftFixture, type Exercise, type Student, type Workout } from "@/lib/mocks";
+import { mediaKeyForName } from "@/lib/vital-video";
 import { AlertTriangle, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -106,6 +107,22 @@ export default function RascunhoIaPage() {
     }
   }
 
+  function updateExercise(blockIndex: number, exerciseIndex: number, patch: Partial<Exercise>) {
+    setWorkout((current) => ({
+      ...current,
+      blocks: current.blocks.map((block, index) =>
+        index === blockIndex
+          ? {
+              ...block,
+              exercises: block.exercises.map((exercise, itemIndex) =>
+                itemIndex === exerciseIndex ? { ...exercise, ...patch } : exercise,
+              ),
+            }
+          : block,
+      ),
+    }));
+  }
+
   const warnings = workout.warnings?.filter(Boolean) ?? [];
 
   return (
@@ -179,37 +196,40 @@ export default function RascunhoIaPage() {
                 <Input
                   label="Exercício"
                   value={ex.name}
-                  onChange={(e) => {
-                    const blocks = [...workout.blocks];
-                    blocks[bi] = {
-                      ...block,
-                      exercises: block.exercises.map((x, i) =>
-                        i === ei ? { ...x, name: e.target.value } : x,
-                      ),
-                    };
-                    setWorkout({ ...workout, blocks });
-                  }}
+                  onChange={(event) =>
+                    updateExercise(bi, ei, {
+                      name: event.target.value,
+                      demoId: mediaKeyForName(event.target.value),
+                    })
+                  }
                 />
-                <p className="mt-2 text-caption tabular-nums">
-                  {ex.sets}×{ex.reps}
-                  {ex.intensity ? ` · ${ex.intensity}` : ex.load ? ` · ${ex.load}` : ""}
-                  {ex.restSeconds ? ` · ${ex.restSeconds}s` : ""}
-                </p>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <Input
+                    label="Séries"
+                    value={String(ex.sets)}
+                    onChange={(event) =>
+                      updateExercise(bi, ei, { sets: Number(event.target.value.replace(/\D/g, "")) || 0 })
+                    }
+                  />
+                  <Input
+                    label="Repetições"
+                    value={ex.reps}
+                    onChange={(event) => updateExercise(bi, ei, { reps: event.target.value })}
+                  />
+                  <Input
+                    label="Descanso (s)"
+                    value={ex.restSeconds ? String(ex.restSeconds) : ""}
+                    onChange={(event) =>
+                      updateExercise(bi, ei, {
+                        restSeconds: Number(event.target.value.replace(/\D/g, "")) || undefined,
+                      })
+                    }
+                  />
+                </div>
                 <ExerciseDemoField
                   demoId={ex.demoId}
                   name={ex.name}
-                  onPick={(item) => {
-                    const blocks = [...workout.blocks];
-                    blocks[bi] = {
-                      ...block,
-                      exercises: block.exercises.map((x, i) =>
-                        i === ei
-                          ? { ...x, demoId: item.id, name: x.name.trim() ? x.name : item.name }
-                          : x,
-                      ),
-                    };
-                    setWorkout({ ...workout, blocks });
-                  }}
+                  onPick={(item) => updateExercise(bi, ei, { demoId: item.id })}
                 />
                 {ex.notes ? (
                   <p className="mt-1 text-sm text-text-muted">{ex.notes}</p>
