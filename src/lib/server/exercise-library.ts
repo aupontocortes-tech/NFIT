@@ -1,4 +1,5 @@
 import { portugueseLabel, portugueseMatchIds } from "@/lib/exercise-match";
+import { searchPhotoHits } from "@/lib/exercise-photo";
 import { searchVideoHits } from "@/lib/vital-video";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -9,7 +10,7 @@ export type LibraryExercise = {
   target: string;
   equipment: string;
   label?: string;
-  media?: "gif" | "video";
+  media?: "gif" | "video" | "photo";
 };
 
 let cache: LibraryExercise[] | null = null;
@@ -39,6 +40,11 @@ export function searchExercises(query: string, limit = 15): LibraryExercise[] {
     if (seen.has(video.id)) continue;
     seen.add(video.id);
     hits.push({ ...video, media: "video" });
+  }
+  for (const photo of searchPhotoHits(q)) {
+    if (seen.has(photo.id)) continue;
+    seen.add(photo.id);
+    hits.push({ ...photo, media: "photo" });
   }
   for (const id of portugueseMatchIds(q)) {
     const item = byId.get(id);

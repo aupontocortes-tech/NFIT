@@ -1,10 +1,23 @@
 "use client";
 
-import { exerciseGifUrl } from "@/lib/exercise-gif";
+import { exercisePhotoUrl } from "@/lib/exercise-photo";
 import { exerciseVideoUrl, resolveExerciseMedia, type ExerciseMedia } from "@/lib/vital-video";
 import { useEffect, useRef, useState } from "react";
 
-type Hit = { id: string; name: string; target: string; equipment: string; label?: string };
+type Hit = {
+  id: string;
+  name: string;
+  target: string;
+  equipment: string;
+  label?: string;
+  media?: "gif" | "video" | "photo";
+};
+
+function storedDemoId(item: Hit) {
+  if (item.media === "photo") return `photo:${item.id}`;
+  if (item.media === "video" || /^\d{4}$/.test(item.id)) return `video:${item.id}`;
+  return item.id;
+}
 
 export function ExerciseGif({
   demoId,
@@ -106,6 +119,37 @@ export function ExerciseClip({
   );
 }
 
+export function ExercisePhoto({
+  photoId,
+  name,
+  large,
+}: {
+  photoId?: string | null;
+  name: string;
+  large?: boolean;
+}) {
+  const start = exercisePhotoUrl(photoId, 0);
+  const end = exercisePhotoUrl(photoId, 1);
+  if (!start || !end) return null;
+  return (
+    <div className={large ? "mt-3 block w-full" : "block w-full max-w-[240px] shrink-0"}>
+      <div className="grid grid-cols-2 gap-1">
+        <img
+          src={start}
+          alt={`Início de ${name}`}
+          className="aspect-square w-full rounded-[var(--radius-md)] border border-border bg-white object-contain"
+        />
+        <img
+          src={end}
+          alt={`Fim de ${name}`}
+          className="aspect-square w-full rounded-[var(--radius-md)] border border-border bg-white object-contain"
+        />
+      </div>
+      <span className="mt-1 block text-xs text-text-muted">Foto, porque não há GIF</span>
+    </div>
+  );
+}
+
 export function ExerciseMissing({ large }: { large?: boolean }) {
   return (
     <div
@@ -133,6 +177,7 @@ export function ExercisePlayback({
   const media = resolveExerciseMedia(name, demoId);
   if (media?.type === "video") return <ExerciseClip large={large} videoId={media.id} name={name} />;
   if (media?.type === "gif" && media.id) return <ExerciseGif large={large} demoId={media.id} name={name} />;
+  if (media?.type === "photo") return <ExercisePhoto large={large} photoId={media.id} name={name} />;
   return <ExerciseMissing large={large} />;
 }
 
@@ -153,9 +198,14 @@ export function ExerciseDemoField({
     <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start">
       <ExercisePlayback demoId={demoId} name={name} />
       <div className="min-w-0 flex-1">
-        {!demoId && media?.type === "video" ? (
+        {media?.type === "video" ? (
           <p className="mb-2 text-xs text-text-muted">
             Não há GIF deste exercício. O vídeo entra no lugar.
+          </p>
+        ) : null}
+        {media?.type === "photo" ? (
+          <p className="mb-2 text-xs text-text-muted">
+            Não há GIF deste exercício. A foto entra no lugar.
           </p>
         ) : null}
         {showSearch ? (
@@ -229,16 +279,30 @@ export function ExerciseSearch({
                 type="button"
                 className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-hover"
                 onClick={() => {
-                  onPick({ id: item.id, name: item.name });
-                  setQ(item.name);
+                  onPick({ id: storedDemoId(item), name: item.label ?? item.name });
+                  setQ(item.label ?? item.name);
                   setItems([]);
                 }}
               >
-                <img
-                  src={exerciseGifUrl(item.id) ?? ""}
-                  alt=""
-                  className="h-12 w-12 shrink-0 rounded-[var(--radius-sm)] bg-white object-contain"
-                />
+                {item.media === "video" ? (
+                  <video
+                    src={exerciseVideoUrl(item.id) ?? undefined}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="h-12 w-12 shrink-0 rounded-[var(--radius-sm)] bg-white object-contain"
+                  />
+                ) : (
+                  <img
+                    src={
+                      item.media === "photo"
+                        ? (exercisePhotoUrl(item.id) ?? "")
+                        : `/api/exercicios/gif?id=${encodeURIComponent(item.id)}`
+                    }
+                    alt=""
+                    className="h-12 w-12 shrink-0 rounded-[var(--radius-sm)] bg-white object-contain"
+                  />
+                )}
                 <span>
                   <span className="block text-sm font-medium">{item.label ?? item.name}</span>
                   <span className="block text-xs text-text-muted">

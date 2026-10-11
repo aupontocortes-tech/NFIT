@@ -1,7 +1,8 @@
 import videos from "@/data/vital-videos.json";
 import { resolveDemoId } from "@/lib/exercise-match";
+import { matchPhotoId } from "@/lib/exercise-photo";
 
-export type ExerciseMedia = { type: "gif" | "video"; id: string };
+export type ExerciseMedia = { type: "gif" | "video" | "photo"; id: string };
 
 const videoRules: [string, string][] = [
   ["flexora sentada", "0079"],
@@ -62,6 +63,7 @@ export function matchVideoId(name: string) {
 }
 
 export function resolveExerciseMedia(name: string, demoId?: string | null): ExerciseMedia | null {
+  if (demoId?.startsWith("photo:")) return { type: "photo", id: demoId.slice(6) };
   if (demoId?.startsWith("video:")) return { type: "video", id: demoId.slice(6) };
   if (demoId && /^\d{4}$/.test(demoId)) return { type: "video", id: demoId };
   if (demoId) return { type: "gif", id: demoId };
@@ -69,11 +71,15 @@ export function resolveExerciseMedia(name: string, demoId?: string | null): Exer
   if (gif) return { type: "gif", id: gif };
   const video = matchVideoId(name);
   if (video) return { type: "video", id: video };
+  const photo = matchPhotoId(name);
+  if (photo) return { type: "photo", id: photo };
   return null;
 }
 
 export function mediaKeyForName(name: string) {
   const media = resolveExerciseMedia(name, null);
   if (!media) return undefined;
-  return media.type === "video" ? `video:${media.id}` : media.id;
+  if (media.type === "video") return `video:${media.id}`;
+  if (media.type === "photo") return `photo:${media.id}`;
+  return media.id;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { exerciseColor } from "@/lib/exercise-color";
+import { exercisePhotoUrl } from "@/lib/exercise-photo";
 import { exerciseVideoUrl } from "@/lib/vital-video";
 import { Input } from "@/components/ui";
 import { useEffect, useState } from "react";
@@ -20,7 +21,7 @@ type Hit = {
   target: string;
   equipment: string;
   label?: string;
-  media?: "gif" | "video";
+  media?: "gif" | "video" | "photo";
 };
 
 export function ManualExerciseBoard({
@@ -51,12 +52,13 @@ export function ManualExerciseBoard({
 
   function add(item: Hit) {
     const video = item.media === "video" || /^\d{4}$/.test(item.id);
+    const demoId = item.media === "photo" ? `photo:${item.id}` : video ? `video:${item.id}` : item.id;
     onChange([
       ...items,
       {
         key: crypto.randomUUID(),
         name: item.label ?? item.name,
-        demoId: video ? `video:${item.id}` : item.id,
+        demoId,
         sets: "3",
         reps: "10",
         rest: "60",
@@ -83,7 +85,11 @@ export function ManualExerciseBoard({
         <ul className="mt-3 grid max-h-[28rem] gap-2 overflow-y-auto sm:grid-cols-2">
           {hits.map((item, index) => {
             const video = item.media === "video" || /^\d{4}$/.test(item.id);
-            const src = video ? exerciseVideoUrl(item.id) : `/api/exercicios/gif?id=${encodeURIComponent(item.id)}`;
+            const src = video
+              ? exerciseVideoUrl(item.id)
+              : item.media === "photo"
+                ? exercisePhotoUrl(item.id)
+                : `/api/exercicios/gif?id=${encodeURIComponent(item.id)}`;
             const color = exerciseColor(index);
             return (
               <li key={`${item.media ?? "gif"}-${item.id}-${item.label ?? item.name}`}>
@@ -127,7 +133,12 @@ export function ManualExerciseBoard({
           {items.map((item, index) => {
             const color = exerciseColor(index);
             const videoId = item.demoId?.startsWith("video:") ? item.demoId.slice(6) : null;
-            const gif = videoId ? null : item.demoId ? `/api/exercicios/gif?id=${encodeURIComponent(item.demoId)}` : null;
+            const photoId = item.demoId?.startsWith("photo:") ? item.demoId.slice(6) : null;
+            const gif =
+              videoId || photoId || !item.demoId
+                ? null
+                : `/api/exercicios/gif?id=${encodeURIComponent(item.demoId)}`;
+            const photo = exercisePhotoUrl(photoId);
             const video = exerciseVideoUrl(videoId);
             return (
               <li
@@ -153,6 +164,12 @@ export function ManualExerciseBoard({
                       loop
                       playsInline
                       className="aspect-square w-full max-w-[160px] rounded-[var(--radius-md)] bg-black object-contain"
+                    />
+                  ) : photo ? (
+                    <img
+                      src={photo}
+                      alt={`Execução de ${item.name}`}
+                      className="aspect-square w-full max-w-[160px] rounded-[var(--radius-md)] bg-white object-contain"
                     />
                   ) : gif ? (
                     <img
