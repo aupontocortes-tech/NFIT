@@ -1,6 +1,6 @@
 import videos from "@/data/vital-videos.json";
-import { resolveDemoId } from "@/lib/exercise-match";
-import { matchPhotoId } from "@/lib/exercise-photo";
+import { bestGifMatch } from "@/lib/exercise-match";
+import { bestPhotoMatch } from "@/lib/exercise-photo";
 
 export type ExerciseMedia = { type: "gif" | "video" | "photo"; id: string };
 
@@ -54,10 +54,20 @@ export function searchVideoHits(query: string) {
   return hits;
 }
 
-export function matchVideoId(name: string) {
+export function bestVideoMatch(name: string) {
   const text = fold(name);
-  const rule = videoRules.find(([phrase]) => text.includes(phrase));
-  if (rule) return rule[1];
+  let best: { id: string; length: number } | null = null;
+  for (const [phrase, id] of videoRules) {
+    if (!text.includes(phrase)) continue;
+    if (!best || phrase.length > best.length) best = { id, length: phrase.length };
+  }
+  return best;
+}
+
+export function matchVideoId(name: string) {
+  const rule = bestVideoMatch(name);
+  if (rule) return rule.id;
+  const text = fold(name);
   const named = videos.find((item) => text.includes(fold(item.name)));
   return named?.id;
 }
@@ -67,12 +77,19 @@ export function resolveExerciseMedia(name: string, demoId?: string | null): Exer
   if (demoId?.startsWith("video:")) return { type: "video", id: demoId.slice(6) };
   if (demoId && /^\d{4}$/.test(demoId)) return { type: "video", id: demoId };
   if (demoId) return { type: "gif", id: demoId };
-  const gif = resolveDemoId(name);
-  if (gif) return { type: "gif", id: gif };
-  const video = matchVideoId(name);
-  if (video) return { type: "video", id: video };
-  const photo = matchPhotoId(name);
-  if (photo) return { type: "photo", id: photo };
+  const gif = bestGifMatch(name);
+  const video = bestVideoMatch(name);
+  const photo = bestPhotoMatch(name);
+  const ranked = [
+    gif ? { type: "gif" as const, id: gif.id, length: gif.length } : null,
+    video ? { type: "video" as const, id: video.id, length: video.length } : null,
+    photo ? { type: "photo" as const, id: photo.id, length: photo.length } : null,
+  ].filter((item) => item != null);
+  ranked.sort((a, b) => b.length - a.length);
+  if (ranked[0]) return { type: ranked[0].type, id: ranked[0].id };
+  const text = fold(name);
+  const named = videos.find((item) => text.includes(fold(item.name)));
+  if (named) return { type: "video", id: named.id };
   return null;
 }
 

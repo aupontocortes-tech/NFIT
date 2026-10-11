@@ -35,8 +35,17 @@ function fold(value: string) {
 
 export function resolveDemoId(name: string, demoId?: string | null) {
   if (demoId) return demoId;
+  return bestGifMatch(name)?.id;
+}
+
+export function bestGifMatch(name: string) {
   const text = fold(name);
-  return rules.find(([phrase]) => text.includes(phrase))?.[1];
+  let best: { id: string; length: number } | null = null;
+  for (const [phrase, id] of rules) {
+    if (!text.includes(phrase)) continue;
+    if (!best || phrase.length > best.length) best = { id, length: phrase.length };
+  }
+  return best;
 }
 
 export function portugueseMatchIds(query: string) {
